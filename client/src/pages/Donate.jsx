@@ -37,7 +37,7 @@ export default function Donate() {
     if (id && id.length === 24) {
         const fetchCause = async () => {
           try {
-            const res = await axios.get(`http://localhost:5000/api/causes/${id}`);
+            const res = await axios.get(`http://https://just-helps-foundation-project.vercel.app/api/causes/${id}`);
             setCause(res.data);
           } catch (err) { console.error(err); }
         };
@@ -67,7 +67,7 @@ export default function Donate() {
 
   const handleCancel = async () => {
     if(window.confirm("Cancel transaction?")) {
-        try { await axios.post('http://localhost:5000/api/payment/cancel', { donorName, donorEmail }); } catch(err) {}
+        try { await axios.post('http://https://just-helps-foundation-project.vercel.app/api/payment/cancel', { donorName, donorEmail }); } catch(err) {}
         setShowRazorpay(false);
     }
   };
@@ -85,7 +85,7 @@ export default function Donate() {
     };
 
     try {
-      const res = await axios.post('http://localhost:5000/api/payment/donate', donationData);
+      const res = await axios.post('http://https://just-helps-foundation-project.vercel.app/api/payment/donate', donationData);
       
       // UX Simulation Sequence
       setTimeout(() => {

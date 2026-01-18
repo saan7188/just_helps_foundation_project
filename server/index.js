@@ -11,7 +11,7 @@ const rateLimit = require('express-rate-limit');
 const { approveCampaign } = require('./controllers/campaignController');
 
 const app = express();
-
+app.set('trust proxy',1);
 // 1. HELMET (FIXED: Allow images to load on frontend)
 
 
@@ -20,7 +20,7 @@ app.use(express.json({ limit: '10kb' }));
 
 // 3. CORS
 app.use(cors({
-  origin: 'http://localhost:5173', 
+  origin: process.env.CLIENT_URL, 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
