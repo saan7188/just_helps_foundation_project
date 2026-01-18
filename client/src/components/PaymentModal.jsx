@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import axios from 'axios';
 
+// ✅ 1. Define Server URL centrally
+const API_URL = "https://justhelpsserver.onrender.com";
+
 export default function PaymentModal({ cause, onClose }) {
   // Smart Presets: "Amount" -> "Impact"
   const presets = [
@@ -34,11 +37,12 @@ export default function PaymentModal({ cause, onClose }) {
 
     try {
       // 2. Send to Backend
-      // Note: In a real app, you would open Razorpay/Stripe here first
-      await axios.post('https://justhelpsserver.onrender.com/api/payment/donate', donationData);
+      // ✅ Use API_URL
+      await axios.post(`${API_URL}/api/payment/donate`, donationData);
       alert(`🎉 Thank you! Your ₹${amount} donation was successful.`);
       onClose();
     } catch (err) {
+      console.error(err);
       alert("Payment failed. Please try again.");
     } finally {
       setLoading(false);
@@ -50,8 +54,8 @@ export default function PaymentModal({ cause, onClose }) {
       <div style={modalStyle}>
         <button onClick={onClose} style={closeBtnStyle}>✕</button>
         
-        <h2 style={{marginTop:0}}>❤️ Support "{cause.title}"</h2>
-        <p style={{color: '#666', fontSize: '0.9rem'}}>Your contribution makes a difference.</p>
+        <h2 style={{marginTop:0, color: '#1F2937'}}>❤️ Support "{cause.title}"</h2>
+        <p style={{color: '#6B7280', fontSize: '0.9rem', marginBottom:'20px'}}>Your contribution makes a difference.</p>
 
         {/* 1. SMART PRESETS */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
@@ -83,17 +87,17 @@ export default function PaymentModal({ cause, onClose }) {
         <input placeholder="Email Address" value={email} onChange={e=>setEmail(e.target.value)} style={inputStyle} />
 
         {/* 4. PRO FEATURES: Dedication & Anonymity */}
-        <div style={{ margin: '15px 0', background: '#f9f9f9', padding: '10px', borderRadius: '8px' }}>
-            <label style={{...labelStyle, display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
-                <input type="checkbox" checked={isAnonymous} onChange={e=>setIsAnonymous(e.target.checked)} style={{marginRight:'10px'}} />
-                🔒 Donate Anonymously (Hide my name)
+        <div style={{ margin: '15px 0', background: '#F9FAFB', padding: '10px', borderRadius: '8px', border:'1px solid #E5E7EB' }}>
+            <label style={{...labelStyle, display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom:0}}>
+                <input type="checkbox" checked={isAnonymous} onChange={e=>setIsAnonymous(e.target.checked)} style={{marginRight:'10px', width:'16px', height:'16px'}} />
+                🔒 Donate Anonymously
             </label>
             
             <input 
                 placeholder="Optional: Dedicate this donation (e.g. In memory of...)" 
                 value={dedication} 
                 onChange={e=>setDedication(e.target.value)} 
-                style={{...inputStyle, marginTop: '10px', fontSize: '0.85rem'}} 
+                style={{...inputStyle, marginTop: '10px', fontSize: '0.85rem', marginBottom:0}} 
             />
         </div>
 
@@ -101,7 +105,7 @@ export default function PaymentModal({ cause, onClose }) {
             {loading ? 'Processing...' : `Pay ₹${amount} Securely`}
         </button>
         
-        <div style={{textAlign: 'center', marginTop: '10px', fontSize: '0.75rem', color: '#999'}}>
+        <div style={{textAlign: 'center', marginTop: '10px', fontSize: '0.75rem', color: '#9CA3AF'}}>
             🔒 SSL Encrypted & Tax Deductible
         </div>
       </div>
@@ -112,9 +116,9 @@ export default function PaymentModal({ cause, onClose }) {
 // --- STYLES ---
 const overlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalStyle = { background: 'white', padding: '30px', borderRadius: '16px', width: '90%', maxWidth: '450px', position: 'relative', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' };
-const closeBtnStyle = { position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' };
-const presetBtn = { padding: '10px', border: '1px solid #ddd', borderRadius: '8px', background: 'white', cursor: 'pointer', transition: '0.2s' };
+const closeBtnStyle = { position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer', color:'#9CA3AF' };
+const presetBtn = { padding: '10px', border: '1px solid #E5E7EB', borderRadius: '8px', background: 'white', cursor: 'pointer', transition: '0.2s', color:'#374151' };
 const activePreset = { ...presetBtn, background: '#EFF6FF', borderColor: '#2563EB', color: '#2563EB', border: '2px solid #2563EB' };
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '10px', fontSize: '1rem' };
-const labelStyle = { display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#555', fontWeight: 'bold' };
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #D1D5DB', marginBottom: '10px', fontSize: '1rem' };
+const labelStyle = { display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#4B5563', fontWeight: 'bold' };
 const payBtnStyle = { width: '100%', background: '#D97706', color: 'white', padding: '15px', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' };
