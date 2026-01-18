@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// ✅ 1. Define the Server URL centrally (Fixes all connection errors)
+const API_URL = "https://justhelpsserver.onrender.com";
+
 export default function Admin() {
   const navigate = useNavigate();
   
@@ -33,12 +36,12 @@ export default function Admin() {
       if (!token) return navigate('/login');
       const config = { headers: { 'x-auth-token': token } };
 
-      // 1. FETCH ALL DATA PARALLEL
+      // 1. FETCH ALL DATA PARALLEL (Using API_URL)
       const [userRes, causeRes, donationRes, siteRes] = await Promise.allSettled([
-        axios.get('https://justhelpsserver.onrender.com/api/auth/users', config),
-        axios.get('https://justhelpsserver.onrender.com/api/causes/admin/all', config),
-        axios.get('https://justhelpsserver.onrender.com/api/payment/all', config),
-        axios.get('https://justhelpsserver.onrender.com/api/site')
+        axios.get(`${API_URL}/api/auth/users`, config),
+        axios.get(`${API_URL}/api/causes/admin/all`, config),
+        axios.get(`${API_URL}/api/payment/all`, config),
+        axios.get(`${API_URL}/api/site`)
       ]);
 
       const allUsers = userRes.status === 'fulfilled' ? userRes.value.data : [];
@@ -88,7 +91,7 @@ export default function Admin() {
       e.preventDefault();
       try {
         const token = localStorage.getItem('token');
-        await axios.put('https://justhelpsserver.onrender.com/api/site', siteConfig, { headers: { 'x-auth-token': token } });
+        await axios.put(`${API_URL}/api/site`, siteConfig, { headers: { 'x-auth-token': token } });
         alert("✅ Site Settings Updated!");
       } catch(err) { alert("Failed to update settings"); }
   };
@@ -97,7 +100,7 @@ export default function Admin() {
     if(!window.confirm("🔴 BAN USER: Are you sure?")) return;
     try {
         const token = localStorage.getItem('token');
-        await axios.delete(`https://justhelpsserver.onrender.com/api/auth/users/${id}`, { headers: { 'x-auth-token': token } });
+        await axios.delete(`${API_URL}/api/auth/users/${id}`, { headers: { 'x-auth-token': token } });
         fetchData(); 
     } catch(err) { alert("Failed to ban user"); }
   };
@@ -105,7 +108,7 @@ export default function Admin() {
   const handleDeleteCause = async (id) => {
     if(!window.confirm("Delete this campaign?")) return;
     const token = localStorage.getItem('token');
-    await axios.delete(`https://justhelpsserver.onrender.com/api/causes/${id}`, { headers: { 'x-auth-token': token } });
+    await axios.delete(`${API_URL}/api/causes/${id}`, { headers: { 'x-auth-token': token } });
     fetchData();
   };
 
@@ -140,14 +143,22 @@ export default function Admin() {
 
     try {
       const config = { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } };
-      if (editingId) await axios.put(`api/causes/${editingId}`, data, config);
-      else await axios.post('https://justhelpsserver.onrender.com/api/causes', data, config);
+      
+      // ✅ FIX IS HERE: Added API_URL to the PUT request
+      if (editingId) {
+        await axios.put(`${API_URL}/api/causes/${editingId}`, data, config);
+      } else {
+        await axios.post(`${API_URL}/api/causes`, data, config);
+      }
       
       alert(editingId ? "Updated!" : "Created!"); 
       setEditingId(null);
       setFormData({title:'', subtitle:'', category:'Food', costText:'', target:'', deadline:'', image:null, order:'1'});
       fetchData();
-    } catch (err) { alert("Error saving data."); }
+    } catch (err) { 
+        console.error(err);
+        alert("Error saving data. Check console for details."); 
+    }
   };
 
   if (loading) return <div style={{ padding: '50px', textAlign: 'center', fontSize: '1.2rem' }}>🚀 Loading Admin Panel...</div>;
