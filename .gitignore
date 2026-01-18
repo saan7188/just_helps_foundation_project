@@ -1,0 +1,18 @@
+# Dependencies - We don't want these on GitHub
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment Variables - SECURITY RISK if uploaded
+.env
+.env.local
+.env.production
+
+# Build Outputs
+dist/
+build/
+
+# Logs and System Junk
+*.log
+.DS_Store
+Thumbs.db
