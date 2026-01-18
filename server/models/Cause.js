@@ -1,28 +1,36 @@
 const mongoose = require('mongoose');
 
 const CauseSchema = new mongoose.Schema({
+  // Link to the User/Admin who created it
+  createdBy: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  },
+  
+  // --- BASIC INFO ---
   title: { type: String, required: true },
-  subtitle: { type: String }, // Short description for card
-  description: { type: String }, // Full story
-  category: { type: String, required: true },
-  target: { type: Number }, 
-  
-  // 🚨 CRITICAL FIX: Renamed 'collected' to 'raised'
-  // This matches your Home.jsx and Payment.js logic
-  raised: { type: Number, default: 0 }, 
-  
-  deadline: { type: Date },
+  subtitle: { type: String, required: true }, // Shown on Home Page cards
+  description: { type: String, required: true }, // Full story on Donate Page
+  category: { type: String, default: 'General' }, // Medical, Education, etc.
   image: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
-  isVerified: { type: Boolean, default: false },
   
-  // --- FIELDS FOR DAILY ESSENTIALS ---
-  isEssential: { type: Boolean, default: false }, 
-  costText: { type: String }, // e.g. "₹50 feeds 1 person"
-  order: { type: Number, default: 1 }, // Added this (useful for sorting items in Admin)
-  // -----------------------------------
-
+  // --- FLAGS ---
+  isVerified: { type: Boolean, default: false }, // Admin Approval
+  isEssential: { type: Boolean, default: false }, // true = "Daily Essentials", false = "Fundraiser"
+  
+  // --- FINANCIALS ---
+  target: { type: Number, required: true },     // Goal Amount
+  collected: { type: Number, default: 0 },      // Amount Raised (Updated by Payment)
+  
+  // --- ESSENTIALS SPECIFIC ---
+  costText: { type: String }, // e.g. "₹50 feeds 1 person" (Only for Essentials)
+  
+  // --- SORTING & URGENCY ---
+  deadline: { type: Date }, // Used for "Urgent" popup
+  order: { type: Number, default: 100 }, // Admin custom sort order
+  
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('cause', CauseSchema);
+// Export as 'Cause' to match your controllers
+module.exports = mongoose.model('Cause', CauseSchema);
