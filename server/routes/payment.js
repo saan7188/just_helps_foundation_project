@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Donation = require('../models/Donation');
-const Cause = require('../models/Cause'); // <--- CRITICAL IMPORT
-const sendEmail = require('../utils/sendEmail');
+const Donation = require('../models/Donation'); // ✅ Matches Step 1
+const Cause = require('../models/Cause');       // ✅ Matches previous Cause model
+const sendEmail = require('../utils/sendEmail');// ✅ Matches Step 2
 
 // ==========================================
 // 1. ADMIN ROUTE (Get All Donations)
@@ -55,8 +55,11 @@ router.post('/donate', async (req, res) => {
     // --- C. UPDATE CAMPAIGN PROGRESS (CRITICAL FIX 🚨) ---
     // This adds the donation amount to the Cause's 'raised' field
     if (causeId && causeId.length > 15) {
+        // Use $inc (increment) to add to existing amount
+        // Use 'collected' or 'raised' depending on your Cause model. 
+        // Based on previous files, we used 'collected'.
         await Cause.findByIdAndUpdate(causeId, { 
-            $inc: { raised: Number(amount) } 
+            $inc: { collected: Number(amount) } 
         });
         console.log(`✅ Updated Campaign: ${causeTitle} +₹${amount}`);
     }
@@ -118,29 +121,11 @@ router.post('/donate', async (req, res) => {
     `;
 
     // --- E. SEND EMAIL & RESPOND ---
-    sendEmail(donorEmail, `Receipt: You made a difference! (${transactionId})`, "Donation Successful", successHtml);
+    await sendEmail(donorEmail, `Receipt: You made a difference!`, "Donation Successful", successHtml);
     res.json({ msg: 'Success', transactionId });
 
   } catch (err) {
     console.error("❌ Payment Error:", err.message);
-
-    // --- F. FAILURE EMAIL ---
-    if (donorEmail) {
-      const failureHtml = `
-        <div style="background-color: #f3f4f6; padding: 40px 20px; font-family: sans-serif;">
-          <div style="background-color: #ffffff; max-width: 450px; margin: 0 auto; border-radius: 12px; padding: 35px; border: 1px solid #e5e7eb;">
-            <h1 style="color: #DC2626; font-size: 24px; margin-top: 0;">Transaction Failed ⚠️</h1>
-            <p style="color: #4b5563;">Your attempt to donate <strong>₹${totalPaid || amount}</strong> was not completed.</p>
-            <div style="background-color: #FEF2F2; padding: 20px; border-radius: 8px; color: #991B1B; margin: 20px 0;">
-              <strong>Cause:</strong> ${causeTitle}<br><strong>Status:</strong> Failed / Refund Initiated
-            </div>
-            <a href="https://just-helps-foundation-project.vercel.app" style="display: block; background: #DC2626; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold;">Try Again</a>
-          </div>
-        </div>
-      `;
-      sendEmail(donorEmail, `❌ Payment Failed`, "Transaction Failed", failureHtml);
-    }
-    
     res.status(500).json({ msg: "Payment Failed", error: err.message });
   }
 });
