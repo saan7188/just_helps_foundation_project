@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+// ✅ 1. Define Server URL centrally
+const API_URL = "https://justhelpsserver.onrender.com";
+
 export default function Register() {
   const navigate = useNavigate();
   
@@ -10,7 +13,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // PASSWORD VISIBILITY STATE (NEW)
+  // PASSWORD VISIBILITY STATE
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({ email: '', otp: '', name: '', password: '' });
@@ -21,7 +24,8 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      await axios.post('https://justhelpsserver.onrender.com/api/auth/send-otp', { email: formData.email });
+      // ✅ Use API_URL
+      await axios.post(`${API_URL}/api/auth/send-otp`, { email: formData.email });
       setStep(2); 
       alert(`✅ OTP Sent to ${formData.email}. Please check your Inbox.`);
     } catch (err) {
@@ -44,12 +48,14 @@ export default function Register() {
     }
 
     try {
-      const res = await axios.post('https://justhelpsserver.onrender.com/api/auth/register', formData);
+      // ✅ Use API_URL
+      const res = await axios.post(`${API_URL}/api/auth/register`, formData);
+      
       localStorage.setItem('token', res.data.token);
       alert("🎉 Verification Successful! Account Created.");
       navigate('/create');
     } catch (err) {
-      setError(err.response?.data?.msg || 'Registration Failed');
+      setError(err.response?.data?.msg || 'Registration Failed. Check OTP and try again.');
     } finally {
       setLoading(false);
     }
@@ -57,7 +63,7 @@ export default function Register() {
 
   return (
     <div className="container" style={{ maxWidth: '450px', marginTop: '60px', paddingBottom: '100px' }}>
-      <div className="cause-card" style={{ padding: '40px' }}>
+      <div className="cause-card" style={{ padding: '40px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
         
         {/* HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
@@ -87,11 +93,11 @@ export default function Register() {
                 style={inputStyle}
               />
             </div>
-            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#1F2937', color: 'white' }}>
+            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#1F2937', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
               {loading ? 'Sending OTP...' : 'Send OTP'}
             </button>
             <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem' }}>
-              Already registered? <Link to="/login" style={{ color: '#D97706', fontWeight: 'bold' }}>Login here</Link>
+              Already registered? <Link to="/login" style={{ color: '#D97706', fontWeight: 'bold', textDecoration: 'none' }}>Login here</Link>
             </p>
           </form>
         )}
@@ -106,7 +112,7 @@ export default function Register() {
                 value={formData.otp} onChange={e => setFormData({...formData, otp: e.target.value})}
                 style={{ ...inputStyle, letterSpacing: '8px', textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}
               />
-              <button onClick={() => setStep(3)} className="btn" style={{ width: '100%', marginTop: '15px', padding: '14px', background: '#D97706', color: 'white' }}>
+              <button onClick={() => setStep(3)} className="btn" style={{ width: '100%', marginTop: '15px', padding: '14px', background: '#D97706', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                  Verify Code
               </button>
             </div>
@@ -148,7 +154,7 @@ export default function Register() {
               </div>
             </div>
 
-            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#059669', color: 'white' }}>
+            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#059669', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
               {loading ? 'Creating...' : 'Complete Registration'}
             </button>
           </form>
