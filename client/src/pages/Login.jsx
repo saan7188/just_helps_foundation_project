@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+// ✅ 1. Define Server URL centrally
+const API_URL = "https://justhelpsserver.onrender.com";
+
 export default function Login() {
   const navigate = useNavigate();
   
@@ -20,7 +23,8 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await axios.post('https://justhelpsserver.onrender.com/api/auth/send-otp', { 
+      // ✅ Use API_URL
+      await axios.post(`${API_URL}/api/auth/send-otp`, { 
         email: formData.email, 
         type: 'LOGIN'
       });
@@ -42,12 +46,14 @@ export default function Login() {
     try {
       let res;
       if (useOtp) {
-        res = await axios.post('https://justhelpsserver.onrender.com/api/auth/login-with-otp', {
+        // ✅ Use API_URL
+        res = await axios.post(`${API_URL}/api/auth/login-with-otp`, {
           email: formData.email,
           otp: formData.otp
         });
       } else {
-        res = await axios.post('https://justhelpsserver.onrender.com/api/auth/login', {
+        // ✅ Use API_URL
+        res = await axios.post(`${API_URL}/api/auth/login`, {
           email: formData.email,
           password: formData.password
         });
@@ -69,7 +75,7 @@ export default function Login() {
       }
 
     } catch (err) {
-      setLoading(false); // FIXED: Turn off loading on error
+      setLoading(false);
       console.error(err);
       setError(err.response?.data?.msg || 'Login failed. Check server connection.');
     }
@@ -93,7 +99,7 @@ export default function Login() {
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', background: 'white' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
           
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px' }}>Fundraiser Login</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px', color: '#1F2937' }}>Fundraiser Login</h1>
           <p style={{ color: '#6B7280', marginBottom: '30px' }}>Manage your campaigns and track donations.</p>
 
           {error && <div style={{ background: '#FEF2F2', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>⚠️ {error}</div>}
@@ -102,13 +108,13 @@ export default function Login() {
           <div style={{ display: 'flex', marginBottom: '25px', background: '#F3F4F6', padding: '4px', borderRadius: '8px' }}>
             <button 
               type="button" onClick={() => { setUseOtp(false); setError(''); }}
-              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: !useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer' }}
+              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: !useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: !useOtp ? '#000' : '#6B7280' }}
             >
               Password Login
             </button>
             <button 
               type="button" onClick={() => { setUseOtp(true); setError(''); }}
-              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer' }}
+              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: useOtp ? '#000' : '#6B7280' }}
             >
               OTP Login
             </button>
@@ -128,7 +134,7 @@ export default function Login() {
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <label style={{ fontWeight: '600' }}>Password</label>
-                  <Link to="/forgot-password" style={{ color: '#D97706', fontSize: '0.85rem' }}>Forgot?</Link>
+                  <Link to="/forgot-password" style={{ color: '#D97706', fontSize: '0.85rem', textDecoration: 'none' }}>Forgot?</Link>
                 </div>
                 <input 
                   type="password" required placeholder="••••••••"
@@ -165,7 +171,7 @@ export default function Login() {
           </form>
 
           <p style={{ textAlign: 'center', marginTop: '25px', color: '#6B7280' }}>
-            New here? <Link to="/register" style={{ color: '#D97706', fontWeight: 'bold' }}>Create Account</Link>
+            New here? <Link to="/register" style={{ color: '#D97706', fontWeight: 'bold', textDecoration: 'none' }}>Create Account</Link>
           </p>
 
         </div>
