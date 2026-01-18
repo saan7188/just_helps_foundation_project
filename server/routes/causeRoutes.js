@@ -108,7 +108,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       category,
       
       // Image URL construction
-      image: `http://https://just-helps-foundation-project.vercel.app/uploads/${req.file.filename}`,
+      image: `https://just-helps-foundation-project.vercel.app/uploads/${req.file.filename}`,
       
       // Data Type Handling
       isEssential: isEssential === 'true', // Converts string "true" to boolean
@@ -151,7 +151,7 @@ router.put('/:id', auth, admin, upload.single('image'), async (req, res) => {
 
     // Update Image ONLY if a new file is sent
     if (req.file) {
-      cause.image = `http://https://just-helps-foundation-project.vercel.app/uploads/${req.file.filename}`;
+      cause.image = `https://just-helps-foundation-project.vercel.app/uploads/${req.file.filename}`;
     }
 
     await cause.save();

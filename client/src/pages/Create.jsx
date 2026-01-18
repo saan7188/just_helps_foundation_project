@@ -28,7 +28,7 @@ export default function Create() {
 
   const fetchMyCauses = async (token) => {
     try {
-      const res = await axios.get('http://https://just-helps-foundation-project.vercel.app/api/causes/mine', {
+      const res = await axios.get('https://just-helps-foundation-project.vercel.app/api/causes/mine', {
         headers: { 'x-auth-token': token }
       });
       setMyCampaigns(res.data);
@@ -58,7 +58,7 @@ export default function Create() {
     }
 
     try {
-      const res = await axios.post('http://https://just-helps-foundation-project.vercel.app/api/causes', data, {
+      const res = await axios.post('https://just-helps-foundation-project.vercel.app/api/causes', data, {
         headers: { 'x-auth-token': token }
       });
       setMyCampaigns([res.data, ...myCampaigns]);

@@ -21,7 +21,7 @@ export default function Register() {
     setLoading(true);
     setError('');
     try {
-      await axios.post('http://https://just-helps-foundation-project.vercel.app/api/auth/send-otp', { email: formData.email });
+      await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/send-otp', { email: formData.email });
       setStep(2); 
       alert(`✅ OTP Sent to ${formData.email}. Please check your Inbox.`);
     } catch (err) {
@@ -44,7 +44,7 @@ export default function Register() {
     }
 
     try {
-      const res = await axios.post('http://https://just-helps-foundation-project.vercel.app/api/auth/register', formData);
+      const res = await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/register', formData);
       localStorage.setItem('token', res.data.token);
       alert("🎉 Verification Successful! Account Created.");
       navigate('/create');

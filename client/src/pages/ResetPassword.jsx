@@ -10,7 +10,7 @@ export default function ResetPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://https://just-helps-foundation-project.vercel.app/api/auth/resetpassword/${token}`, { password });
+      await axios.put(`https://just-helps-foundation-project.vercel.app/api/auth/resetpassword/${token}`, { password });
       alert('Password Updated! Please Login.');
       navigate('/login');
     } catch (err) {

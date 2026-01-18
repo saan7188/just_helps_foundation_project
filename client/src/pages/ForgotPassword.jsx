@@ -10,7 +10,7 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://https://just-helps-foundation-project.vercel.app/api/auth/forgotpassword', { email });
+      await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/forgotpassword', { email });
       setMsg('✅ Check your email for the reset link.');
       setError('');
     } catch (err) {
