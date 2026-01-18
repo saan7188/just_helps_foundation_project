@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+// ✅ 1. Define Server URL centrally
+const API_URL = "https://justhelpsserver.onrender.com";
+
 export default function Donate() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -37,7 +40,8 @@ export default function Donate() {
     if (id && id.length === 24) {
         const fetchCause = async () => {
           try {
-            const res = await axios.get(`https://justhelpsserver.onrender.com/api/causes/${id}`);
+            // ✅ Use API_URL
+            const res = await axios.get(`${API_URL}/api/causes/${id}`);
             setCause(res.data);
           } catch (err) { console.error(err); }
         };
@@ -53,7 +57,7 @@ export default function Donate() {
   }, [id]);
 
   // CALCULATIONS
-  const baseAmount = Number(amount) || 0; // Changed to Number() for safety
+  const baseAmount = Number(amount) || 0; 
   const tipAmount = Math.round(baseAmount * (tipPercentage / 100));
   const totalAmount = baseAmount + tipAmount;
 
@@ -67,7 +71,10 @@ export default function Donate() {
 
   const handleCancel = async () => {
     if(window.confirm("Cancel transaction?")) {
-        try { await axios.post('https://justhelpsserver.onrender.com/api/payment/cancel', { donorName, donorEmail }); } catch(err) {}
+        try { 
+            // ✅ Use API_URL
+            await axios.post(`${API_URL}/api/payment/cancel`, { donorName, donorEmail }); 
+        } catch(err) {}
         setShowRazorpay(false);
     }
   };
@@ -85,7 +92,8 @@ export default function Donate() {
     };
 
     try {
-      const res = await axios.post('https://justhelpsserver.onrender.com/api/payment/donate', donationData);
+      // ✅ Use API_URL
+      const res = await axios.post(`${API_URL}/api/payment/donate`, donationData);
       
       // UX Simulation Sequence
       setTimeout(() => {
