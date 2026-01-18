@@ -1,45 +1,42 @@
 const express = require('express');
 const router = express.Router();
-const SiteConfig = require('../models/SiteConfig');
-
-// ✅ FIX: Import middleware exactly like you did in campaignroutes.js
+const Site = require('../models/Site');
 const auth = require('../middleware/authMiddleware');
 const admin = require('../middleware/adminMiddleware');
 
-// GET SETTINGS (Public - for Home Page)
+// @route   GET /api/site
+// @desc    Get Site Config (Public - used by App.jsx)
 router.get('/', async (req, res) => {
   try {
-    let config = await SiteConfig.findOne();
-    if (!config) {
-        // Create default if not exists
-        config = new SiteConfig();
-        await config.save();
+    // Return the first config found, or create one if missing
+    let site = await Site.findOne();
+    if (!site) {
+      site = new Site();
+      await site.save();
     }
-    res.json(config);
-  } catch (err) { 
-    console.error(err);
-    res.status(500).send('Server Error'); 
+    res.json(site);
+  } catch (err) {
+    res.status(500).send('Server Error');
   }
 });
 
-// UPDATE SETTINGS (Admin Only)
-// ✅ FIX: Use 'auth' and 'admin' variables here
+// @route   PUT /api/site
+// @desc    Update Site Config (Admin Only)
 router.put('/', auth, admin, async (req, res) => {
   try {
-    const { heroTitle, heroSubtitle, maintenanceMode, announcement } = req.body;
-    let config = await SiteConfig.findOne();
-    if (!config) config = new SiteConfig();
+    let site = await Site.findOne();
+    if (!site) site = new Site();
 
-    config.heroTitle = heroTitle;
-    config.heroSubtitle = heroSubtitle;
-    config.maintenanceMode = maintenanceMode;
-    config.announcement = announcement;
+    // Update fields
+    if (req.body.heroTitle) site.heroTitle = req.body.heroTitle;
+    if (req.body.heroSubtitle) site.heroSubtitle = req.body.heroSubtitle;
+    if (req.body.announcement !== undefined) site.announcement = req.body.announcement;
+    if (req.body.maintenanceMode !== undefined) site.maintenanceMode = req.body.maintenanceMode;
 
-    await config.save();
-    res.json(config);
-  } catch (err) { 
-    console.error(err);
-    res.status(500).send('Server Error'); 
+    await site.save();
+    res.json(site);
+  } catch (err) {
+    res.status(500).send('Server Error');
   }
 });
 
