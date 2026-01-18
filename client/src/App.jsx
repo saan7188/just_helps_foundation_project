@@ -5,6 +5,7 @@ import axios from 'axios';
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Maintenance from './components/Maintenance'; // ✅ FIXED: Importing from components folder
 
 // Pages
 import Home from './pages/Home';
@@ -15,18 +16,14 @@ import ResetPassword from './pages/ResetPassword';
 import Create from './pages/Create'; // User Dashboard
 import Admin from './pages/Admin';   // Admin Dashboard
 import Donate from './pages/Donate';
-import Maintenance from './pages/Maintenance';
 
 // ✅ Define Server URL (Production Ready)
-// This variable is used here to fetch Site Config.
-// Other pages (Donate/Home) define it internally or import it.
 const API_URL = "https://justhelpsserver.onrender.com";
 
 function App() {
   const location = useLocation();
   
   // --- SITE CONFIG STATE ---
-  // Stores global settings like "Maintenance Mode" or "Hero Text"
   const [config, setConfig] = useState({
     heroTitle: "Small Acts. Massive Impact.",
     heroSubtitle: "Your donation changes lives.",
@@ -53,8 +50,6 @@ function App() {
   }, []);
 
   // 2. Maintenance Mode Logic
-  // If Maintenance is ON, we show the Maintenance Screen.
-  // BUT: We must allow access to '/login' and '/admin' so YOU can fix it.
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
   
   if (!loadingConfig && config.maintenanceMode && !isAdminRoute) {
@@ -64,7 +59,7 @@ function App() {
   return (
     <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       
-      {/* Navbar is always visible (except maybe on Maintenance page which covers it) */}
+      {/* Navbar is always visible */}
       <Navbar />
 
       {/* Main Content Area */}
