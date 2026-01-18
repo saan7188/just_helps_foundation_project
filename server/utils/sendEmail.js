@@ -5,10 +5,10 @@ const sendEmail = async (to, subject, text, html = null) => {
   try {
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 2525,
+      port: 587 ,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
+        user: "apikey",   // ✅ MUST be exactly this string
         pass: process.env.EMAIL_PASS, // App Password
       },
       tls:{
