@@ -4,13 +4,15 @@ const nodemailer = require('nodemailer');
 const sendEmail = async (to, subject, text, html = null) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
+      host: "smtp-relay.brevo.com",
+      port: 2525,
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS, // App Password
       },
+      tls:{
+      rejectUnauthorized:false}
     });
     let finalHtml;
 
