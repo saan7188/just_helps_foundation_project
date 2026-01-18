@@ -134,7 +134,7 @@ router.post('/donate', async (req, res) => {
             <div style="background-color: #FEF2F2; padding: 20px; border-radius: 8px; color: #991B1B; margin: 20px 0;">
               <strong>Cause:</strong> ${causeTitle}<br><strong>Status:</strong> Failed / Refund Initiated
             </div>
-            <a href="http://localhost:5173" style="display: block; background: #DC2626; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold;">Try Again</a>
+            <a href="https://justhelpsserver.onrender.com" style="display: block; background: #DC2626; color: white; text-align: center; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold;">Try Again</a>
           </div>
         </div>
       `;

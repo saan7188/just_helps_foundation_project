@@ -79,7 +79,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // Create Reset URL
-    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const resetUrl = `https://justhelpsserver.onrender.com/reset-password/${resetToken}`;
 
     // Send Email
     const transporter = nodemailer.createTransport({

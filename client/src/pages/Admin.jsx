@@ -35,10 +35,10 @@ export default function Admin() {
 
       // 1. FETCH ALL DATA PARALLEL
       const [userRes, causeRes, donationRes, siteRes] = await Promise.allSettled([
-        axios.get('https://just-helps-foundation-project.vercel.app/api/auth/users', config),
-        axios.get('https://just-helps-foundation-project.vercel.app/api/causes/admin/all', config),
-        axios.get('https://just-helps-foundation-project.vercel.app/api/payment/all', config),
-        axios.get('https://just-helps-foundation-project.vercel.app/api/site')
+        axios.get('https://justhelpsserver.onrender.com/api/auth/users', config),
+        axios.get('https://justhelpsserver.onrender.com/api/causes/admin/all', config),
+        axios.get('https://justhelpsserver.onrender.com/api/payment/all', config),
+        axios.get('https://justhelpsserver.onrender.com/api/site')
       ]);
 
       const allUsers = userRes.status === 'fulfilled' ? userRes.value.data : [];
@@ -88,7 +88,7 @@ export default function Admin() {
       e.preventDefault();
       try {
         const token = localStorage.getItem('token');
-        await axios.put('https://just-helps-foundation-project.vercel.app/api/site', siteConfig, { headers: { 'x-auth-token': token } });
+        await axios.put('https://justhelpsserver.onrender.com/api/site', siteConfig, { headers: { 'x-auth-token': token } });
         alert("✅ Site Settings Updated!");
       } catch(err) { alert("Failed to update settings"); }
   };
@@ -97,7 +97,7 @@ export default function Admin() {
     if(!window.confirm("🔴 BAN USER: Are you sure?")) return;
     try {
         const token = localStorage.getItem('token');
-        await axios.delete(`https://just-helps-foundation-project.vercel.app/api/auth/users/${id}`, { headers: { 'x-auth-token': token } });
+        await axios.delete(`https://justhelpsserver.onrender.com/api/auth/users/${id}`, { headers: { 'x-auth-token': token } });
         fetchData(); 
     } catch(err) { alert("Failed to ban user"); }
   };
@@ -105,7 +105,7 @@ export default function Admin() {
   const handleDeleteCause = async (id) => {
     if(!window.confirm("Delete this campaign?")) return;
     const token = localStorage.getItem('token');
-    await axios.delete(`https://just-helps-foundation-project.vercel.app/api/causes/${id}`, { headers: { 'x-auth-token': token } });
+    await axios.delete(`https://justhelpsserver.onrender.com/api/causes/${id}`, { headers: { 'x-auth-token': token } });
     fetchData();
   };
 
@@ -141,7 +141,7 @@ export default function Admin() {
     try {
       const config = { headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' } };
       if (editingId) await axios.put(`api/causes/${editingId}`, data, config);
-      else await axios.post('https://just-helps-foundation-project.vercel.app/api/causes', data, config);
+      else await axios.post('https://justhelpsserver.onrender.com/api/causes', data, config);
       
       alert(editingId ? "Updated!" : "Created!"); 
       setEditingId(null);

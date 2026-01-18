@@ -35,7 +35,7 @@ export default function PaymentModal({ cause, onClose }) {
     try {
       // 2. Send to Backend
       // Note: In a real app, you would open Razorpay/Stripe here first
-      await axios.post('https://just-helps-foundation-project.vercel.app/api/payment/donate', donationData);
+      await axios.post('https://justhelpsserver.onrender.com/api/payment/donate', donationData);
       alert(`🎉 Thank you! Your ₹${amount} donation was successful.`);
       onClose();
     } catch (err) {

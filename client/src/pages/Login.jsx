@@ -20,7 +20,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/send-otp', { 
+      await axios.post('https://justhelpsserver.onrender.com/api/auth/send-otp', { 
         email: formData.email, 
         type: 'LOGIN'
       });
@@ -42,12 +42,12 @@ export default function Login() {
     try {
       let res;
       if (useOtp) {
-        res = await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/login-with-otp', {
+        res = await axios.post('https://justhelpsserver.onrender.com/api/auth/login-with-otp', {
           email: formData.email,
           otp: formData.otp
         });
       } else {
-        res = await axios.post('https://just-helps-foundation-project.vercel.app/api/auth/login', {
+        res = await axios.post('https://justhelpsserver.onrender.com/api/auth/login', {
           email: formData.email,
           password: formData.password
         });
