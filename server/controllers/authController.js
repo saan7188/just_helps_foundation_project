@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto'); // Built-in Node module
+const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 // 1. REGISTER (With Validation)
@@ -9,18 +9,15 @@ exports.register = async (req, res) => {
   const { name, email, password } = req.body;
   
   try {
-    // A. PASSWORD VALIDATION
     if (password.length < 6) {
       return res.status(400).json({ msg: 'Password must be at least 6 characters long.' });
     }
 
-    // B. EMAIL UNIQUE CHECK
     let user = await User.findOne({ email });
     if (user) {
       return res.status(400).json({ msg: 'This email is already registered.' });
     }
 
-    // C. CREATE USER
     user = new User({ name, email, password });
     
     const salt = await bcrypt.genSalt(10);
@@ -28,7 +25,6 @@ exports.register = async (req, res) => {
     
     await user.save();
 
-    // D. LOGIN IMMEDIATELY
     const payload = { user: { id: user.id } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: 360000 }, (err, token) => {
       if (err) throw err;
@@ -78,13 +74,23 @@ exports.forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // Create Reset URL
-    const resetUrl = `https://justhelpsserver.onrender.com/reset-password/${resetToken}`;
+    // ⚠️ IMPORTANT: Link must point to FRONTEND (Vercel), not Backend (Render)
+    // Replace this URL with your actual Vercel link if different
+    const frontendUrl = "https://just-helps-foundation-project.vercel.app"; 
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
-    // Send Email
+    // 📧 SETUP EMAIL TRANSPORTER (Updated for Brevo/Render)
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      host: "smtp-relay.brevo.com", // ✅ Switch to Brevo
+      port: 2525,                   // ✅ Port 2525 works on Render
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER, // Your Brevo Email
+        pass: process.env.EMAIL_PASS, // Your Brevo SMTP Key
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
     });
 
     const message = `
@@ -104,6 +110,7 @@ exports.forgotPassword = async (req, res) => {
     res.status(200).json({ msg: 'Email sent' });
 
   } catch (err) {
+    console.error("Forgot Password Error:", err);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
@@ -114,6 +121,8 @@ exports.forgotPassword = async (req, res) => {
 // 4. RESET PASSWORD (Verify Token & Update)
 exports.resetPassword = async (req, res) => {
   const { password } = req.body;
+  
+  // Hash the token from the URL to match the database
   const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
 
   try {
@@ -136,6 +145,7 @@ exports.resetPassword = async (req, res) => {
 
     res.status(200).json({ msg: 'Password Updated Success' });
   } catch (err) {
+    console.error(err);
     res.status(500).send('Server error');
   }
 };
