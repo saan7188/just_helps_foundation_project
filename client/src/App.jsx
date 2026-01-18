@@ -5,7 +5,7 @@ import axios from 'axios';
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import Maintenance from './components/Maintenance'; // ✅ FIXED: Importing from components folder
+import Maintenance from './components/Maintenance'; 
 
 // Pages
 import Home from './pages/Home';
