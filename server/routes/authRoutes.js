@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs'); // Ensure you use bcryptjs or bcrypt consistently
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
-// Middleware (REQUIRED for Admin Routes)
-const auth = require('../middleware/authMiddleware');
-const admin = require('../middleware/adminMiddleware');
+// Middleware
+const auth = require('../middleware/authMiddleware'); // Ensure this file exists
+const admin = require('../middleware/adminMiddleware'); // Ensure this file exists
 
 // Models
 const User = require('../models/User');
@@ -26,7 +27,6 @@ router.post('/send-otp', async (req, res) => {
   try {
     const user = await User.findOne({ email });
 
-    // LOGIC CHECK:
     if (type === 'REGISTER' && user) return res.status(400).json({ msg: 'User already exists. Please Login.' });
     if (type === 'LOGIN' && !user) return res.status(400).json({ msg: 'No account found. Please Register.' });
 
@@ -36,8 +36,8 @@ router.post('/send-otp', async (req, res) => {
     const newOtp = new Otp({ email, otp: otpCode });
     await newOtp.save();
 
-    // Send Email
-    const emailSent = await sendEmail(email, "Your Verification Code - JustHelps", otpCode);
+    // Send Email via Brevo
+    const emailSent = await sendEmail(email, "Your Verification Code", `Your OTP Code is: <b>${otpCode}</b>`);
     if (!emailSent) return res.status(500).json({ msg: "Failed to send email." });
 
     res.json({ msg: `OTP sent to ${email}` });
@@ -61,9 +61,7 @@ router.post('/login-with-otp', async (req, res) => {
 
     await Otp.deleteMany({ email });
 
-    // PAYLOAD
     const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
-
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
       res.json({ token, isAdmin: user.isAdmin });
@@ -95,14 +93,13 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
-    
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
       res.json({ token, isAdmin: user.isAdmin });
     });
 
   } catch (err) {
-    console.error("❌ Register Error:", err);
+    console.error(err);
     res.status(500).send('Server Error');
   }
 });
@@ -119,43 +116,89 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
 
     const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
-    
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
       res.json({ token, isAdmin: user.isAdmin });
     });
 
   } catch (err) {
-    console.error("❌ Login Error:", err);
+    console.error(err);
     res.status(500).send('Server error');
   }
 });
 
 // ==========================================
-// 3. ADMIN USER MANAGEMENT (NEW)
+// 3. PASSWORD RESET ROUTES (Restored!)
 // ==========================================
 
-// @route   GET /api/auth/users
-// @desc    Get all registered users (Admin only)
+// @route   POST /api/auth/forgotpassword
+router.post('/forgotpassword', async (req, res) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ msg: 'Email not found' });
+
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 Min
+    await user.save();
+
+    // Link points to Vercel Frontend
+    const resetUrl = `https://just-helps-foundation-project.vercel.app/reset-password/${resetToken}`;
+    
+    await sendEmail(email, "Password Reset Request", `Click here to reset password: <a href="${resetUrl}">${resetUrl}</a>`);
+    
+    res.status(200).json({ msg: 'Email sent' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Email could not be sent' });
+  }
+});
+
+// @route   PUT /api/auth/resetpassword/:token
+router.put('/resetpassword/:token', async (req, res) => {
+  const { password } = req.body;
+  const resetPasswordToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
+    if (!user) return res.status(400).json({ msg: 'Invalid or Expired Token' });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ msg: 'Password Updated Success' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+// ==========================================
+// 4. ADMIN USER MANAGEMENT
+// ==========================================
+
 router.get('/users', auth, admin, async (req, res) => {
   try {
-    // Return all users but hide their passwords
     const users = await User.find().select('-password').sort({ date: -1 });
     res.json(users);
   } catch (err) {
-    console.error("Fetch Users Error:", err);
     res.status(500).send('Server Error');
   }
 });
 
-// @route   DELETE /api/auth/users/:id
-// @desc    Delete/Ban a user (Admin only)
 router.delete('/users/:id', auth, admin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
     res.json({ msg: 'User Deleted Successfully' });
   } catch (err) {
-    console.error("Delete User Error:", err);
     res.status(500).send('Server Error');
   }
 });
