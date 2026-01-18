@@ -1,40 +1,50 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { API_URL } from './apiconfig'; // ✅ Hosting Ready
 
-// COMPONENTS
+// Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop';
-import Maintenance from './components/Maintenance'; 
 
-// PAGES
+// Pages
 import Home from './pages/Home';
-import Donate from './pages/Donate';
 import Login from './pages/Login';
-import Create from './pages/Create';
-import Admin from './pages/Admin';
+import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import Register from './pages/Register';
-// ❌ Profile Import Removed
+import Create from './pages/Create'; // User Dashboard
+import Admin from './pages/Admin';   // Admin Dashboard
+import Donate from './pages/Donate';
+import Maintenance from './pages/Maintenance';
+
+// ✅ Define Server URL (Production Ready)
+// This variable is used here to fetch Site Config.
+// Other pages (Donate/Home) define it internally or import it.
+const API_URL = "https://justhelpsserver.onrender.com";
 
 function App() {
   const location = useLocation();
-  const [siteConfig, setSiteConfig] = useState({ 
-    heroTitle: '', heroSubtitle: '', maintenanceMode: false, announcement: '' 
+  
+  // --- SITE CONFIG STATE ---
+  // Stores global settings like "Maintenance Mode" or "Hero Text"
+  const [config, setConfig] = useState({
+    heroTitle: "Small Acts. Massive Impact.",
+    heroSubtitle: "Your donation changes lives.",
+    maintenanceMode: false,
+    announcement: ""
   });
   const [loadingConfig, setLoadingConfig] = useState(true);
 
-  // 1. FETCH SITE CONFIG (God Mode)
+  // 1. Fetch Site Settings from Backend on Load
   useEffect(() => {
     const fetchConfig = async () => {
       try {
         const res = await axios.get(`${API_URL}/api/site`);
-        setSiteConfig(res.data);
+        if (res.data) {
+          setConfig(res.data);
+        }
       } catch (err) {
-        console.error("Failed to load site config:", err);
+        console.error("Failed to load site config. Using defaults.", err);
       } finally {
         setLoadingConfig(false);
       }
@@ -42,35 +52,43 @@ function App() {
     fetchConfig();
   }, []);
 
-  // 2. MAINTENANCE MODE CHECK
-  // Allow access ONLY to Login, Register, Admin, and Forgot Password
-  const isProtectedPath = !['/login', '/admin', '/register', '/forgot-password', '/reset-password'].some(path => location.pathname.startsWith(path));
+  // 2. Maintenance Mode Logic
+  // If Maintenance is ON, we show the Maintenance Screen.
+  // BUT: We must allow access to '/login' and '/admin' so YOU can fix it.
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
   
-  if (!loadingConfig && siteConfig.maintenanceMode && isProtectedPath) {
-    return <Maintenance announcement={siteConfig.announcement} />;
+  if (!loadingConfig && config.maintenanceMode && !isAdminRoute) {
+    return <Maintenance announcement={config.announcement} />;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <ScrollToTop /> 
+    <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      
+      {/* Navbar is always visible (except maybe on Maintenance page which covers it) */}
       <Navbar />
 
+      {/* Main Content Area */}
       <div style={{ flex: 1 }}>
         <Routes>
-          {/* Pass config to Home for Dynamic Hero Text */}
-          <Route path="/" element={<Home config={siteConfig} />} />
+          {/* HOME: Passes config so Hero Text is dynamic */}
+          <Route path="/" element={<Home config={config} />} />
           
-          <Route path="/donate/:id" element={<Donate />} />
+          {/* AUTH ROUTES */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/create" element={<Create />} />
-          <Route path="/admin" element={<Admin />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          
+          {/* DASHBOARDS */}
+          <Route path="/create" element={<Create />} />
+          <Route path="/admin" element={<Admin />} />
+          
+          {/* DONATION FLOW */}
+          <Route path="/donate/:id" element={<Donate />} />
         </Routes>
       </div>
 
-      <Footer />    
+      <Footer />
     </div>
   );
 }
