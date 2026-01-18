@@ -1,13 +1,16 @@
 const nodemailer = require('nodemailer');
 
-// Setup Email Transporter
+// ✅ FIXED: Use Brevo on Port 2525 (Bypasses Render Firewall)
 const transporter = nodemailer.createTransport({
-  host:"smtp.gmail.com",
-  port:587,
-  secure:false,
+  host: "smtp-relay.brevo.com", 
+  port: 2525,                   
+  secure: false,                
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER, // Your Brevo Email
+    pass: process.env.EMAIL_PASS, // Your Brevo SMTP Key
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
 
@@ -35,7 +38,7 @@ exports.processDonation = async (req, res) => {
     res.json({ msg: 'Donation processed and receipt sent' });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Email failed');
+    console.error("Email Error:", err);
+    res.status(500).send('Email failed to send');
   }
 };
