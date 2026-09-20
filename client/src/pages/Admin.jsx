@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('stats');
