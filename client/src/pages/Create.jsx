@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 const Create = () => {
   const navigate = useNavigate();
