@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-// ✅ 1. Define Server URL centrally
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 export default function PaymentModal({ cause, onClose }) {
   // Smart Presets: "Amount" -> "Impact"
