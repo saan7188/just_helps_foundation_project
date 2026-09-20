@@ -24,7 +24,7 @@ export default function DonationResult() {
         <div className="result-card neutral">
           <div className="result-icon">↩</div>
           <span className="eyebrow">PAYMENT CANCELLED</span>
-          <h1>No worries. Your donation wasn't completed.</h1>
+          <h1>No worries. Your donation wasn&apos;t completed.</h1>
           <p>You can come back whenever you're ready. No donation was recorded from this cancelled attempt.</p>
           <div className="result-actions"><Link to="/causes" className="primary-link-button">Explore causes</Link><Link to="/" className="secondary-link-button">Back home</Link></div>
         </div>
@@ -37,7 +37,7 @@ export default function DonationResult() {
       <div className="result-card success">
         <div className="result-icon">♥</div>
         <span className="eyebrow">THANK YOU</span>
-        <h1>You made someone's day a little easier.</h1>
+        <h1>You made someone&apos;s day a little easier.</h1>
         <p className="impact-message">{message}</p>
         {cause && <p>You chose to support <strong>{cause}</strong>.</p>}
         <div className="peace-card">❤️ Thank you for choosing to help. Your contribution has been recorded and a receipt has been sent to your email.</div>
