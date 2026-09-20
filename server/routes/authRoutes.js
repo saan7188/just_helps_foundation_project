@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const rateLimit = require('express-rate-limit');
+const rateLimit = require('express-rate-limit');\n\nconst isStrongPassword = password =>\n  password.length >= 10 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\\d/.test(password) && /[^A-Za-z0-9]/.test(password);
 
 // Middleware
 const auth = require('../middleware/authMiddleware');
