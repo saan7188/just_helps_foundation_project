@@ -94,7 +94,7 @@ export default function Home({ config }) {
           {heroSubtitle}
         </p>
         <div style={{ display: 'inline-block', padding: '10px 20px', background: '#F3F4F6', borderRadius: '50px', fontSize: '0.9rem', color: '#374151', fontWeight: '600' }}>
-          ❤️ Help brings hope and smile where they're needed
+          ❤️ Help brings hope and smile where they&apos;re needed
         </div>
       </div>
 
