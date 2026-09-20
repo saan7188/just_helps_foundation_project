@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('stats');
@@ -24,7 +24,7 @@ const Admin = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchData = async () => {
     try {
@@ -70,6 +70,11 @@ const Admin = () => {
     data.append('subtitle', editingItem.subtitle);
     data.append('category', editingItem.category);
     if (newImage) data.append('image', newImage);
+
+    if (!editingItem.title?.trim() || !editingItem.subtitle?.trim()) {
+      alert("Title and subtitle are required");
+      return;
+    }
 
     try {
       await axios.put(`${API_URL}/api/causes/${editingItem._id}`, data, {
