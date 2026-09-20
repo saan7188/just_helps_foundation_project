@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import API_URL from './api';
 
 // Components
 import Navbar from './components/Navbar';
@@ -18,8 +19,6 @@ import Admin from './pages/Admin';   // Admin Dashboard
 import Donate from './pages/Donate';
 
 // ✅ Define Server URL (Production Ready)
-const API_URL = "https://justhelpsserver.onrender.com";
-
 function App() {
   const location = useLocation();
   
@@ -50,7 +49,7 @@ function App() {
   }, []);
 
   // 2. Maintenance Mode Logic
-  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login');
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.startsWith('/login') || location.pathname.startsWith('/register') || location.pathname.startsWith('/forgot-password') || location.pathname.startsWith('/reset-password');
   
   if (!loadingConfig && config.maintenanceMode && !isAdminRoute) {
     return <Maintenance announcement={config.announcement} />;
