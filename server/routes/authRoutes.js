@@ -33,6 +33,10 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
 
   if (!email) return res.status(400).json({ msg: 'Email is required.' });
 
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    return res.status(503).json({ msg: 'Email service is not configured on the server.' });
+  }
+
   try {
     const user = await User.findOne({ email });
 
