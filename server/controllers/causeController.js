@@ -5,7 +5,7 @@ const getDateSort = { createdAt: -1 };
 
 exports.getCauses = async (req, res) => {
   try {
-    const filter = { isVerified: true, status: { $in: ['approved'] } };
+    const filter = { isVerified: true, $or: [{ status: 'approved' }, { status: { $exists: false } }] };
     if (req.query.category) { const category = String(req.query.category).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\if (req.query.category) filter.category = new RegExp(`^${String(req.query.category).trim()}$ `, 'i');'); filter.category = new RegExp(`^${category}const mongoose = require('mongoose');
 const Cause = require('../models/Cause');
 
