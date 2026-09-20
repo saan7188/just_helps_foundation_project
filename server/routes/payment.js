@@ -1,5 +1,4 @@
 const express = require('express');
-const crypto = require('crypto');
 const { randomUUID } = require('crypto');
 const router = express.Router();
 
@@ -56,7 +55,11 @@ router.post('/donate', async (req, res) => {
   try {
     let cause = null;
 
-    if (causeId && causeId.length === 24) {
+    if (causeId) {
+      if (!/^[a-f\d]{24}$/i.test(causeId)) {
+        return res.status(400).json({ msg: 'Invalid campaign ID' });
+      }
+
       cause = await Cause.findOne({ _id: causeId, isVerified: true });
       if (!cause) {
         return res.status(404).json({ msg: 'Campaign not found' });
