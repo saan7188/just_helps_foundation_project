@@ -2,34 +2,32 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
-// ✅ 1. Define Server URL centrally
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
-  
-  // MODES
+  const { login } = useAuth();
+
   const [useOtp, setUseOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
-
-  // DATA
   const [formData, setFormData] = useState({ email: '', password: '', otp: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 1. SEND OTP
   const handleSendOtp = async () => {
-    if (!formData.email) return setError("Please enter your email first.");
+    if (!formData.email.trim()) return setError("Please enter your email first.");
+
     setLoading(true);
     setError('');
+
     try {
-      // ✅ Use API_URL
-      await axios.post(`${API_URL}/api/auth/send-otp`, { 
-        email: formData.email, 
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
+        email: formData.email.trim().toLowerCase(),
         type: 'LOGIN'
       });
       setOtpSent(true);
-      alert("✅ OTP sent to your email!");
+      alert("OTP sent to your email!");
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to send OTP.");
     } finally {
@@ -37,58 +35,51 @@ export default function Login() {
     }
   };
 
-  // 2. SUBMIT LOGIN
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      const email = formData.email.trim().toLowerCase();
       let res;
+
       if (useOtp) {
-        // ✅ Use API_URL
         res = await axios.post(`${API_URL}/api/auth/login-with-otp`, {
-          email: formData.email,
-          otp: formData.otp
+          email,
+          otp: formData.otp.trim()
         });
       } else {
-        // ✅ Use API_URL
         res = await axios.post(`${API_URL}/api/auth/login`, {
-          email: formData.email,
+          email,
           password: formData.password
         });
       }
 
-      // Success
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('isAdmin', String(Boolean(res.data.isAdmin)));
-      
-      // Stop Loading immediately
-      setLoading(false);
+      login(res.data.token, Boolean(res.data.isAdmin));
 
-      // Check Admin Flag
       if (res.data.isAdmin) {
-        alert("🔐 Welcome Admin!");
-        navigate('/admin');
+        alert("Welcome Admin!");
+        navigate('/admin', { replace: true });
       } else {
-        alert("✅ Welcome back!");
-        navigate('/create');
+        alert("Welcome back!");
+        navigate('/create', { replace: true });
       }
-
     } catch (err) {
-      setLoading(false);
-      console.error(err);
       setError(err.response?.data?.msg || 'Login failed. Check server connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={{ display: 'flex', minHeight: 'calc(100vh - 75px)', background: '#F9FAFB' }}>
-      
-      {/* IMAGE SIDE */}
-      <div className="login-image-panel" style={{ 
-        flex: 1, backgroundImage: 'url("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=1000")',
-        backgroundSize: 'cover', backgroundPosition: 'center', position: 'relative'
+      <div className="login-image-panel" style={{
+        flex: 1,
+        backgroundImage: 'url("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=1000")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
       }}>
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}></div>
         <div style={{ position: 'absolute', bottom: '60px', left: '60px', color: 'white' }}>
@@ -96,27 +87,18 @@ export default function Login() {
         </div>
       </div>
 
-      {/* FORM SIDE */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', background: 'white' }}>
         <div style={{ width: '100%', maxWidth: '400px' }}>
-          
           <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px', color: '#1F2937' }}>Fundraiser Login</h1>
           <p style={{ color: '#6B7280', marginBottom: '30px' }}>Manage your campaigns and track donations.</p>
 
           {error && <div style={{ background: '#FEF2F2', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>⚠️ {error}</div>}
 
-          {/* TOGGLE */}
           <div style={{ display: 'flex', marginBottom: '25px', background: '#F3F4F6', padding: '4px', borderRadius: '8px' }}>
-            <button 
-              type="button" onClick={() => { setUseOtp(false); setError(''); }}
-              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: !useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: !useOtp ? '#000' : '#6B7280' }}
-            >
+            <button type="button" onClick={() => { setUseOtp(false); setOtpSent(false); setError(''); }} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: !useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: !useOtp ? '#000' : '#6B7280' }}>
               Password Login
             </button>
-            <button 
-              type="button" onClick={() => { setUseOtp(true); setError(''); }}
-              style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: useOtp ? '#000' : '#6B7280' }}
-            >
+            <button type="button" onClick={() => { setUseOtp(true); setOtpSent(false); setError(''); }} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: useOtp ? '#000' : '#6B7280' }}>
               OTP Login
             </button>
           </div>
@@ -124,9 +106,12 @@ export default function Login() {
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Email Address</label>
-              <input 
-                type="email" required placeholder="name@example.com"
-                value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})}
+              <input
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={e => setFormData({ ...formData, email: e.target.value })}
                 style={inputStyle}
               />
             </div>
@@ -137,9 +122,12 @@ export default function Login() {
                   <label style={{ fontWeight: '600' }}>Password</label>
                   <Link to="/forgot-password" style={{ color: '#D97706', fontSize: '0.85rem', textDecoration: 'none' }}>Forgot?</Link>
                 </div>
-                <input 
-                  type="password" required placeholder="••••••••"
-                  value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})}
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
                   style={inputStyle}
                 />
               </div>
@@ -154,9 +142,15 @@ export default function Login() {
                 ) : (
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Enter OTP</label>
-                    <input 
-                      type="text" required placeholder="XXXX"
-                      value={formData.otp} onChange={e => setFormData({...formData, otp: e.target.value})}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      placeholder="XXXX"
+                      maxLength="4"
+                      value={formData.otp}
+                      onChange={e => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
                       style={{ ...inputStyle, letterSpacing: '5px', textAlign: 'center', fontSize: '1.2rem' }}
                     />
                   </div>
@@ -174,13 +168,30 @@ export default function Login() {
           <p style={{ textAlign: 'center', marginTop: '25px', color: '#6B7280' }}>
             New here? <Link to="/register" style={{ color: '#D97706', fontWeight: 'bold', textDecoration: 'none' }}>Create Account</Link>
           </p>
-
         </div>
       </div>
+
       <style>{`@media (max-width: 900px) { .login-image-panel { display: none !important; } }`}</style>
     </div>
   );
 }
 
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '1rem' };
-const btnStyle = { width: '100%', padding: '14px', borderRadius: '8px', border: 'none', background: '#D97706', color: 'white', fontWeight: 'bold', fontSize: '1rem', cursor: 'pointer' };
+const inputStyle = {
+  width: '100%',
+  padding: '12px',
+  borderRadius: '8px',
+  border: '1px solid #D1D5DB',
+  fontSize: '1rem'
+};
+
+const btnStyle = {
+  width: '100%',
+  padding: '14px',
+  borderRadius: '8px',
+  border: 'none',
+  background: '#D97706',
+  color: 'white',
+  fontWeight: 'bold',
+  fontSize: '1rem',
+  cursor: 'pointer'
+};
