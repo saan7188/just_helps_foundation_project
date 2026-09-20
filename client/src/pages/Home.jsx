@@ -21,21 +21,18 @@ function CampaignCard({ cause }) {
   const daysLeft = cause.deadline ? Math.ceil((new Date(cause.deadline) - new Date()) / 86400000) : null;
 
   return (
-    <article className="glass-card" style={{ overflow: 'hidden', background: '#fff' }}>
-      <img src={imageUrl(cause.image)} alt={cause.title} style={{ width: '100%', height: 190, objectFit: 'cover' }} />
-      <div style={{ padding: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+    <article className="campaign-card">
+      <img src={imageUrl(cause.image)} alt="" loading="lazy" />
+      <div className="campaign-card-body">
+        <div className="campaign-card-meta">
           <span className="category-pill">{cause.category}</span>
-          {daysLeft !== null && <span style={{ color: daysLeft <= 3 ? '#B91C1C' : '#6B7280', fontSize: 13, fontWeight: 700 }}>⏳ {daysLeft > 0 ? `${daysLeft} days left` : 'Ending soon'}</span>}
+          {daysLeft !== null && <span className={daysLeft <= 3 ? 'days-left danger-text' : 'days-left'}>{daysLeft > 0 ? `${daysLeft} days left` : 'Ending soon'}</span>}
         </div>
-        <h3 style={{ margin: '12px 0 7px', fontSize: 20 }}>{cause.title}</h3>
-        <p style={{ color: '#6B7280', minHeight: 44 }}>{cause.subtitle}</p>
-        <div style={{ marginTop: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
-            <span>₹{raised.toLocaleString()} raised</span>
-            <span>₹{target.toLocaleString()} goal</span>
-          </div>
-          <div className="progress-track"><div className="progress-fill" style={{ width: `${percent}%` }} /></div>
+        <h3>{cause.title}</h3>
+        <p>{cause.subtitle}</p>
+        <div className="campaign-card-progress">
+          <div className="campaign-card-money"><span>₹{raised.toLocaleString()} raised</span><span>₹{target.toLocaleString()} goal</span></div>
+          <div className="progress-track" aria-hidden="true"><div className="progress-fill" style={{ width: `${percent}%` }} /></div>
         </div>
         <Link className="primary-link-button" to={`/campaign/${cause._id}`}>View campaign</Link>
       </div>
@@ -48,6 +45,7 @@ export default function Home({ config }) {
   const [causes, setCauses] = useState([]);
   const [urgent, setUrgent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -56,19 +54,24 @@ export default function Home({ config }) {
     ]).then(([all, urgentRes]) => {
       setCauses(all.data || []);
       setUrgent(urgentRes.data || null);
-    }).catch(err => console.error(err))
-      .finally(() => setLoading(false));
+    }).catch(err => {
+      console.error(err);
+      setLoadError(true);
+    }).finally(() => setLoading(false));
   }, []);
-
-  const categoriesToShow = categories;
 
   return (
     <div>
       <section className="hero hero-visual container">
         <div className="hero-visual-image">
-          <img src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1600&q=90" alt="Community members supporting one another" />
+          <img
+            src="https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1600&q=90"
+            alt="People supporting one another in a community"
+            fetchPriority="high"
+          />
           <div className="hero-photo-badge"><strong>Real needs.</strong><span>Human stories.</span></div>
         </div>
+
         <div className="hero-visual-copy">
           <span className="eyebrow">JUST HELPS FOUNDATION</span>
           <h1>{config?.heroTitle || 'Small Acts. Massive Impact.'}</h1>
@@ -77,10 +80,10 @@ export default function Home({ config }) {
             <button className="primary-button" onClick={() => navigate('/causes')}>Explore causes</button>
             <button className="secondary-button" onClick={() => navigate('/donate?category=Food')}>Donate now</button>
           </div>
-          <div className="trust-strip trust-left">
-            <span>🛡️ Verified campaigns</span>
-            <span>🔐 Secure access</span>
-            <span>📧 Digital receipts</span>
+          <div className="trust-strip trust-left" aria-label="Platform principles">
+            <span>✓ Verified campaigns</span>
+            <span>✓ Secure access</span>
+            <span>✓ Digital receipts</span>
           </div>
         </div>
       </section>
@@ -91,9 +94,9 @@ export default function Home({ config }) {
           <Link to="/causes">See all causes →</Link>
         </div>
         <div className="category-grid">
-          {categoriesToShow.map(category => (
+          {categories.map(category => (
             <Link key={category.name} to={`/causes?category=${encodeURIComponent(category.name)}`} className="category-card">
-              <span className="category-icon">{category.icon}</span>
+              <span className="category-icon" aria-hidden="true">{category.icon}</span>
               <strong>{category.name}</strong>
               <small>{category.text}</small>
             </Link>
@@ -111,7 +114,7 @@ export default function Home({ config }) {
               <Link to={`/campaign/${urgent._id}`} className="primary-link-button">See the urgent need</Link>
             </div>
             <div className="urgent-meta">
-              <span>🔴 Deadline approaching</span>
+              <span>Deadline approaching</span>
               <strong>₹{Number(urgent.collected || 0).toLocaleString()} raised</strong>
               <small>of ₹{Number(urgent.target || 0).toLocaleString()}</small>
             </div>
@@ -124,9 +127,10 @@ export default function Home({ config }) {
           <div><span className="eyebrow">VERIFIED NEEDS</span><h2>People are asking for help</h2></div>
           <Link to="/causes">Explore all →</Link>
         </div>
-        {loading ? <div className="empty-state">Loading verified campaigns…</div> :
+        {loading ? <div className="empty-state" aria-live="polite">Loading verified campaigns…</div> :
+          loadError ? <div className="empty-state"><h2>Campaigns are temporarily unavailable</h2><p>Please try again in a moment.</p></div> :
           causes.length ? <div className="campaign-grid">{causes.slice(0, 6).map(cause => <CampaignCard key={cause._id} cause={cause} />)}</div> :
-          <div className="empty-state">There are no active campaigns right now. Please check back soon.</div>}
+          <div className="empty-state"><h2>No active campaigns right now</h2><p>Please check back soon.</p></div>}
       </section>
 
       <section className="container section">

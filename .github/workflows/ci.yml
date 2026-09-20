@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - portfolio-hardening
+      - final-production-polish
   pull_request:
     branches:
       - main

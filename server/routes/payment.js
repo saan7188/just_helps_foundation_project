@@ -8,11 +8,25 @@ const sendEmail = require('../utils/sendEmail');
 const auth = require('../middleware/authMiddleware');
 const admin = require('../middleware/adminMiddleware');
 
-// This project intentionally uses a free demo payment flow.
-// No real card/UPI details are collected or stored.
-
 const createTransactionId = () =>
   `JH-DEMO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
+
+const escapeHtml = value => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+const impactByCategory = {
+  Food: 'You made someone worry a little less about their next meal.',
+  Healthcare: 'You helped someone focus on getting better instead of worrying alone.',
+  Education: 'You gave a learner one more reason to keep going.',
+  Shelter: 'You helped make someone’s day a little safer.',
+  'Girl Child': 'You helped turn a basic need into one less thing to worry about.',
+  Emergency: 'You were there when someone needed help quickly.',
+  General: 'You made someone’s day a little easier.'
+};
 
 router.get('/all', auth, admin, async (req, res) => {
   try {
@@ -44,16 +58,20 @@ router.post('/donate', async (req, res) => {
   const normalizedName = String(donorName || '').trim();
   const normalizedDedication = String(dedication || '').trim();
 
-  if (!normalizedName || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+  if (!normalizedName || normalizedName.length > 100 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
     return res.status(400).json({ msg: 'Enter a valid name and email' });
   }
 
   if (!Number.isFinite(donationAmount) || donationAmount < 1 || donationAmount > 1000000) {
-    return res.status(400).json({ msg: 'Donation amount must be at least ₹1' });
+    return res.status(400).json({ msg: 'Donation amount must be between ₹1 and ₹10,00,000' });
   }
 
   if (!Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 100000) {
     return res.status(400).json({ msg: 'Invalid tip amount' });
+  }
+
+  if (totalPaid > 1100000) {
+    return res.status(400).json({ msg: 'Total demo contribution is too large' });
   }
 
   try {
@@ -64,20 +82,27 @@ router.post('/donate', async (req, res) => {
         return res.status(400).json({ msg: 'Invalid campaign ID' });
       }
 
-      cause = await Cause.findOne({ _id: causeId, isVerified: true });
+      cause = await Cause.findOne({
+        _id: causeId,
+        isVerified: true,
+        $or: [{ status: 'approved' }, { status: { $exists: false } }]
+      });
+
       if (!cause) {
         return res.status(404).json({ msg: 'Campaign not found' });
       }
     }
 
     const transactionId = createTransactionId();
-    const category = String(cause?.category || req.body.category || 'General').trim();
+    const category = String(cause?.category || req.body.category || 'General').trim().slice(0, 50);
+    const recordedCauseTitle = String(cause?.title || causeTitle || 'General Donation').slice(0, 200);
 
     if (cause) {
       const updatedCause = await Cause.findOneAndUpdate(
         {
           _id: cause._id,
           isVerified: true,
+          $or: [{ status: 'approved' }, { status: { $exists: false } }],
           $expr: { $lte: [{ $add: ['$collected', donationAmount] }, '$target'] }
         },
         { $inc: { collected: donationAmount } },
@@ -99,7 +124,7 @@ router.post('/donate', async (req, res) => {
         tipAmount,
         totalPaid,
         cause: cause ? String(cause._id) : 'general',
-        causeTitle: cause?.title || causeTitle || 'General Donation',
+        causeTitle: recordedCauseTitle,
         category,
         isAnonymous: Boolean(isAnonymous),
         dedication: normalizedDedication.slice(0, 500),
@@ -115,15 +140,16 @@ router.post('/donate', async (req, res) => {
       throw donationError;
     }
 
-    // Receipt is a demo receipt. It must not claim that a real payment
-    // processor or tax exemption was used.
+    const receiptName = escapeHtml(normalizedName);
+    const receiptCause = escapeHtml(recordedCauseTitle);
+
     const receiptHtml = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
         <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
-        <p>Thank you, ${normalizedName}.</p>
+        <p>Thank you, ${receiptName}.</p>
         <p>This portfolio project records simulated donations for demonstration purposes.</p>
         <hr>
-        <p><strong>Campaign:</strong> ${cause?.title || causeTitle || 'General Donation'}</p>
+        <p><strong>Campaign:</strong> ${receiptCause}</p>
         <p><strong>Donation:</strong> ₹${donationAmount.toFixed(2)}</p>
         <p><strong>Platform tip:</strong> ₹${tipAmount.toFixed(2)}</p>
         <p><strong>Total:</strong> ₹${totalPaid.toFixed(2)}</p>
@@ -134,7 +160,6 @@ router.post('/donate', async (req, res) => {
       </div>
     `;
 
-    // Email failure should not undo a successfully recorded demo donation.
     try {
       await sendEmail(
         donation.donorEmail,
@@ -150,7 +175,10 @@ router.post('/donate', async (req, res) => {
       msg: 'Demo donation recorded',
       transactionId,
       paymentMode: 'demo',
-      donationId: donation._id
+      donationId: donation._id,
+      category,
+      causeTitle: recordedCauseTitle,
+      impactMessage: impactByCategory[category] || impactByCategory.General
     });
   } catch (error) {
     console.error('Donation error:', error);

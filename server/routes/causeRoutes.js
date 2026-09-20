@@ -9,10 +9,15 @@ const admin = require('../middleware/adminMiddleware');
 const causeController = require('../controllers/causeController');
 
 const uploadDirectory = path.join(__dirname, '..', 'uploads');
+const proofDirectory = path.join(__dirname, '..', 'private_uploads');
+
 fs.mkdirSync(uploadDirectory, { recursive: true });
+fs.mkdirSync(proofDirectory, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: uploadDirectory,
+  destination: (req, file, cb) => {
+    cb(null, file.fieldname === 'proof' ? proofDirectory : uploadDirectory);
+  },
   filename: (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
     cb(null, `${file.fieldname}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`);
@@ -58,6 +63,7 @@ router.get('/', causeController.getCauses);
 
 router.post('/', auth, uploadCampaignFiles, causeController.createCause);
 router.get('/:id', causeController.getCauseById);
+router.get('/:id/proof/:index', auth, admin, causeController.getProofFile);
 router.put('/:id', auth, admin, uploadCampaignFiles, causeController.updateCause);
 router.delete('/:id', auth, admin, causeController.deleteCause);
 

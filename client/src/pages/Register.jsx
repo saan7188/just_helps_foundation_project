@@ -5,6 +5,13 @@ import axios from 'axios';
 import API_URL from '../api';
 import { useAuth } from '../context/AuthContext';
 
+const isStrongPassword = password =>
+  password.length >= 10 &&
+  /[a-z]/.test(password) &&
+  /[A-Z]/.test(password) &&
+  /\d/.test(password) &&
+  /[^A-Za-z0-9]/.test(password);
+
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -22,7 +29,7 @@ export default function Register() {
     password: ''
   });
 
-  const handleSendOtp = async (e) => {
+  const handleSendOtp = async e => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -30,14 +37,9 @@ export default function Register() {
     const email = formData.email.trim().toLowerCase();
 
     try {
-      await axios.post(`${API_URL}/api/auth/send-otp`, {
-        email,
-        type: 'REGISTER'
-      });
-
+      await axios.post(`${API_URL}/api/auth/send-otp`, { email, type: 'REGISTER' });
       setFormData(prev => ({ ...prev, email }));
       setStep(2);
-      alert(`OTP sent to ${email}. Please check your inbox.`);
     } catch (err) {
       setError(err.response?.data?.msg || 'Failed to send OTP');
     } finally {
@@ -71,28 +73,32 @@ export default function Register() {
     }
   };
 
-  const handleFinalRegister = async (e) => {
+  const handleFinalRegister = async e => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      setLoading(false);
+    if (formData.name.trim().length < 2) {
+      setError('Enter your full name.');
       return;
     }
 
+    if (!isStrongPassword(formData.password)) {
+      setError('Use at least 10 characters with uppercase, lowercase, a number and a special character.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
       const res = await axios.post(`${API_URL}/api/auth/register`, {
-        name: formData.name,
+        name: formData.name.trim(),
         email: formData.email,
         password: formData.password,
         verificationToken
       });
 
-      login(res.data.token, res.data.isAdmin);
-      alert('Verification successful! Account created.');
-      navigate('/dashboard');
+      login(res.data.token, Boolean(res.data.isAdmin));
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed. Please try again.');
     } finally {
@@ -101,138 +107,64 @@ export default function Register() {
   };
 
   return (
-    <div className="container" style={{ maxWidth: '450px', marginTop: '60px', paddingBottom: '100px' }}>
-      <div className="cause-card" style={{ padding: '40px', background: 'white', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h2 style={{ fontSize: '1.8rem', color: '#1F2937', marginBottom: '5px' }}>Start a Fundraiser</h2>
-          <p style={{ color: '#6B7280', fontSize: '0.9rem' }}>
-            {step === 1 ? 'Step 1: Email Verification' : step === 2 ? 'Step 2: Verify OTP' : 'Step 3: Secure Account'}
-          </p>
-          <div style={{ height: '4px', background: '#E5E7EB', marginTop: '15px', borderRadius: '4px', overflow: 'hidden' }}>
-            <div style={{ width: step === 1 ? '33%' : step === 2 ? '66%' : '100%', height: '100%', background: '#D97706', transition: 'width 0.3s' }}></div>
-          </div>
+    <div className="container section auth-register-page">
+      <div className="auth-register-card">
+        <span className="eyebrow">START A FUNDRAISER</span>
+        <h1>Create your fundraiser account</h1>
+        <p className="auth-muted">
+          {step === 1 ? 'Step 1 of 3 · Email verification' : step === 2 ? 'Step 2 of 3 · Verify OTP' : 'Step 3 of 3 · Secure your account'}
+        </p>
+        <div className="step-progress" aria-label={`Registration step ${step} of 3`}>
+          <div style={{ width: `${step * 33.333}%` }} />
         </div>
 
-        {error && (
-          <div style={{ background: '#FEF2F2', color: '#B91C1C', padding: '10px', borderRadius: '6px', marginBottom: '20px', fontSize: '0.9rem', textAlign: 'center' }}>
-            ⚠️ {error}
-          </div>
-        )}
+        {error && <div className="form-error" role="alert">{error}</div>}
 
         {step === 1 && (
           <form onSubmit={handleSendOtp}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px' }}>Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
-            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#1F2937', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-              {loading ? 'Sending OTP...' : 'Send OTP'}
-            </button>
-            <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.9rem' }}>
-              Already registered? <Link to="/login" style={{ color: '#D97706', fontWeight: 'bold', textDecoration: 'none' }}>Login here</Link>
-            </p>
+            <label className="auth-field">
+              Email address
+              <input className="form-input" type="email" autoComplete="email" required placeholder="name@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+            </label>
+            <button disabled={loading} className="primary-button full">{loading ? 'Sending OTP…' : 'Send OTP'}</button>
+            <p className="auth-footer-copy">Already registered? <Link to="/login">Log in</Link></p>
           </form>
         )}
 
         {step === 2 && (
-          <div className="fade-in">
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px' }}>Enter OTP</label>
-              <input
-                type="text"
-                required
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                placeholder="XXXX"
-                maxLength="4"
-                value={formData.otp}
-                onChange={e => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
-                style={{ ...inputStyle, letterSpacing: '8px', textAlign: 'center', fontSize: '1.5rem', fontWeight: 'bold' }}
-              />
-              <button
-                type="button"
-                disabled={loading}
-                onClick={handleVerifyOtp}
-                className="btn"
-                style={{ width: '100%', marginTop: '15px', padding: '14px', background: '#D97706', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                {loading ? 'Verifying...' : 'Verify Code'}
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => { setStep(1); setError(''); }}
-              style={{ background: 'none', border: 'none', color: '#6B7280', cursor: 'pointer' }}
-            >
-              Change email
-            </button>
+          <div>
+            <label className="auth-field">
+              4-digit OTP
+              <input className="form-input otp-input" type="text" inputMode="numeric" autoComplete="one-time-code" required maxLength="4" value={formData.otp} onChange={e => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })} />
+            </label>
+            <button type="button" disabled={loading} onClick={handleVerifyOtp} className="primary-button full">{loading ? 'Verifying…' : 'Verify code'}</button>
+            <button type="button" onClick={() => { setStep(1); setError(''); }} className="text-button">Change email</button>
           </div>
         )}
 
         {step === 3 && (
-          <form onSubmit={handleFinalRegister} className="fade-in">
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px' }}>Full Name</label>
-              <input
-                type="text"
-                required
-                minLength="2"
-                maxLength="80"
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
+          <form onSubmit={handleFinalRegister}>
+            <label className="auth-field">
+              Full name
+              <input className="form-input" type="text" autoComplete="name" required minLength="2" maxLength="80" placeholder="Your name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+            </label>
 
-            <div style={{ marginBottom: '25px' }}>
-              <label style={{ display: 'block', fontWeight: '600', marginBottom: '8px' }}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  minLength="10"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  style={inputStyle}
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  role="button"
-                  tabIndex="0"
-                  style={{
-                    position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                    cursor: 'pointer', fontSize: '1.2rem', color: '#9CA3AF', userSelect: 'none'
-                  }}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? '🙈' : '👁️'}
-                </span>
-              </div>
-            </div>
+            <label className="auth-field">
+              Password
+              <input className="form-input" type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength="10" placeholder="Create a strong password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+            </label>
 
-            <button disabled={loading} className="btn" style={{ width: '100%', padding: '14px', background: '#059669', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-              {loading ? 'Creating...' : 'Complete Registration'}
-            </button>
+            <div className="password-hint">10+ characters · uppercase · lowercase · number · special character</div>
+
+            <label className="checkbox-row password-toggle">
+              <input type="checkbox" checked={showPassword} onChange={e => setShowPassword(e.target.checked)} />
+              Show password
+            </label>
+
+            <button disabled={loading} className="primary-button full">{loading ? 'Creating…' : 'Complete registration'}</button>
           </form>
         )}
       </div>
     </div>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '8px',
-  border: '1px solid #D1D5DB',
-  fontSize: '1rem'
-};
