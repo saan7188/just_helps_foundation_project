@@ -255,7 +255,6 @@ export default function Donate() {
 // STYLES
 const sectionTitle = { fontSize: '1.2rem', color: '#374151', marginBottom: '15px', borderBottom: '2px solid #E5E7EB', paddingBottom: '10px' };
 const inputStyle = { width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '1rem', background: '#fff' };
-const modalInputStyle = { width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid #D1D5DB', marginBottom: '15px', fontSize: '0.95rem' };
 const subHeaderStyle = { fontSize: '0.85rem', color: '#6B7280', marginBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' };
 const demoNoticeStyle = { background:'#FFF7ED', border:'1px solid #FED7AA', color:'#9A3412', padding:'12px', borderRadius:'8px', fontSize:'0.82rem', lineHeight:1.4, marginBottom:'15px' };
 const demoCardStyle = { background:'linear-gradient(135deg,#374151,#111827)', color:'white', borderRadius:'12px', padding:'20px', margin:'15px 0', fontFamily:'monospace', fontSize:'1.1rem', letterSpacing:'2px' };
