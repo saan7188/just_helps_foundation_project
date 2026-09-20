@@ -25,7 +25,8 @@ router.get('/admin/all', auth, admin, causeController.getAllCausesAdmin);
 router.get('/', causeController.getCauses);
 
 // 3. Protected Actions
-router.post('/', auth, admin, upload.single('image'), causeController.createCause);
+// Any signed-in user can submit a campaign. New campaigns stay pending until admin approval.
+router.post('/', auth, upload.single('image'), causeController.createCause);
 
 // 4. ID-based Paths
 router.get('/:id', causeController.getCauseById);
