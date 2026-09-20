@@ -14,6 +14,13 @@ const admin = require('../middleware/adminMiddleware');
 const createTransactionId = () =>
   `JH-DEMO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
+const escapeHtml = value => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
 router.get('/all', auth, admin, async (req, res) => {
   try {
     const donations = await Donation.find().sort({ date: -1 }).lean();
@@ -44,16 +51,20 @@ router.post('/donate', async (req, res) => {
   const normalizedName = String(donorName || '').trim();
   const normalizedDedication = String(dedication || '').trim();
 
-  if (!normalizedName || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+  if (!normalizedName || normalizedName.length > 100 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
     return res.status(400).json({ msg: 'Enter a valid name and email' });
   }
 
   if (!Number.isFinite(donationAmount) || donationAmount < 1 || donationAmount > 1000000) {
-    return res.status(400).json({ msg: 'Donation amount must be at least ₹1' });
+    return res.status(400).json({ msg: 'Donation amount must be between ₹1 and ₹10,00,000' });
   }
 
   if (!Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 100000) {
     return res.status(400).json({ msg: 'Invalid tip amount' });
+  }
+
+  if (totalPaid > 1100000) {
+    return res.status(400).json({ msg: 'Total demo contribution is too large' });
   }
 
   try {
@@ -64,20 +75,26 @@ router.post('/donate', async (req, res) => {
         return res.status(400).json({ msg: 'Invalid campaign ID' });
       }
 
-      cause = await Cause.findOne({ _id: causeId, isVerified: true });
+      cause = await Cause.findOne({
+        _id: causeId,
+        isVerified: true,
+        $or: [{ status: 'approved' }, { status: { $exists: false } }]
+      });
+
       if (!cause) {
         return res.status(404).json({ msg: 'Campaign not found' });
       }
     }
 
     const transactionId = createTransactionId();
-    const category = String(cause?.category || req.body.category || 'General').trim();
+    const category = String(cause?.category || req.body.category || 'General').trim().slice(0, 50);
 
     if (cause) {
       const updatedCause = await Cause.findOneAndUpdate(
         {
           _id: cause._id,
           isVerified: true,
+          $or: [{ status: 'approved' }, { status: { $exists: false } }],
           $expr: { $lte: [{ $add: ['$collected', donationAmount] }, '$target'] }
         },
         { $inc: { collected: donationAmount } },
@@ -99,7 +116,7 @@ router.post('/donate', async (req, res) => {
         tipAmount,
         totalPaid,
         cause: cause ? String(cause._id) : 'general',
-        causeTitle: cause?.title || causeTitle || 'General Donation',
+        causeTitle: String(cause?.title || causeTitle || 'General Donation').slice(0, 200),
         category,
         isAnonymous: Boolean(isAnonymous),
         dedication: normalizedDedication.slice(0, 500),
@@ -115,15 +132,18 @@ router.post('/donate', async (req, res) => {
       throw donationError;
     }
 
+    const receiptName = escapeHtml(normalizedName);
+    const receiptCause = escapeHtml(cause?.title || causeTitle || 'General Donation');
+
     // Receipt is a demo receipt. It must not claim that a real payment
     // processor or tax exemption was used.
     const receiptHtml = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
         <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
-        <p>Thank you, ${normalizedName}.</p>
+        <p>Thank you, ${receiptName}.</p>
         <p>This portfolio project records simulated donations for demonstration purposes.</p>
         <hr>
-        <p><strong>Campaign:</strong> ${cause?.title || causeTitle || 'General Donation'}</p>
+        <p><strong>Campaign:</strong> ${receiptCause}</p>
         <p><strong>Donation:</strong> ₹${donationAmount.toFixed(2)}</p>
         <p><strong>Platform tip:</strong> ₹${tipAmount.toFixed(2)}</p>
         <p><strong>Total:</strong> ₹${totalPaid.toFixed(2)}</p>
