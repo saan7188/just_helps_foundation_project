@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const path = require('path');
 const Cause = require('../models/Cause');
 
 const getDateSort = { createdAt: -1 };
@@ -7,11 +8,14 @@ const publicStatusFilter = {
   $or: [{ status: 'approved' }, { status: { $exists: false } }]
 };
 
+const escapeRegex = value => String(value).replace(/[.*+?^$\${}()|[\]\\]/g, '\\$&');
+
 exports.getCauses = async (req, res) => {
   try {
     const filter = { ...publicStatusFilter };
     if (req.query.category) {
-      filter.category = new RegExp(String(req.query.category).trim(), 'i');
+      const category = String(req.query.category).trim();
+      if (category) filter.category = new RegExp(escapeRegex(category), 'i');
     }
     const causes = await Cause.find(filter).sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
     res.json(causes);
@@ -71,6 +75,43 @@ exports.getCauseById = async (req, res) => {
   }
 };
 
+exports.getProofFile = async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    return res.status(400).json({ msg: 'Invalid campaign ID' });
+  }
+
+  const index = Number(req.params.index);
+  if (!Number.isInteger(index) || index < 0) {
+    return res.status(400).json({ msg: 'Invalid proof document' });
+  }
+
+  try {
+    const cause = await Cause.findById(req.params.id).select('proofFiles');
+    if (!cause || !cause.proofFiles[index]) {
+      return res.status(404).json({ msg: 'Proof document not found' });
+    }
+
+    const reference = String(cause.proofFiles[index]);
+    const filename = path.basename(reference);
+    const proofPath = path.join(__dirname, '..', 'private_uploads', filename);
+
+    if (!proofPath.startsWith(path.join(__dirname, '..', 'private_uploads') + path.sep)) {
+      return res.status(400).json({ msg: 'Invalid proof document' });
+    }
+
+    return res.sendFile(proofPath, error => {
+      if (error && !res.headersSent) {
+        res.status(error.statusCode === 404 ? 404 : 500).json({
+          msg: error.statusCode === 404 ? 'Proof document not found' : 'Unable to open proof document'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Proof document error:', error);
+    res.status(500).json({ msg: 'Unable to open proof document' });
+  }
+};
+
 exports.createCause = async (req, res) => {
   const { title, subtitle, description, category, target, deadline } = req.body;
 
@@ -101,7 +142,7 @@ exports.createCause = async (req, res) => {
       target: targetAmount,
       deadline: new Date(deadline),
       image: '/uploads/' + req.files.image[0].filename,
-      proofFiles: (req.files.proof || []).map(file => '/uploads/' + file.filename),
+      proofFiles: (req.files.proof || []).map(file => file.filename),
       isVerified: false,
       status: 'pending'
     });
@@ -129,7 +170,17 @@ exports.updateCause = async (req, res) => {
   }
 
   if (req.files?.image?.[0]) updateData.image = '/uploads/' + req.files.image[0].filename;
-  if (req.files?.proof?.length) updateData.proofFiles = req.files.proof.map(file => '/uploads/' + file.filename);
+  if (req.files?.proof?.length) updateData.proofFiles = req.files.proof.map(file => file.filename);
+
+  if (updateData.title !== undefined && !String(updateData.title).trim()) {
+    return res.status(400).json({ msg: 'Campaign title cannot be empty' });
+  }
+  if (updateData.subtitle !== undefined && !String(updateData.subtitle).trim()) {
+    return res.status(400).json({ msg: 'Campaign subtitle cannot be empty' });
+  }
+  if (updateData.description !== undefined && !String(updateData.description).trim()) {
+    return res.status(400).json({ msg: 'Campaign story cannot be empty' });
+  }
 
   if (updateData.target !== undefined) {
     const targetAmount = Number(updateData.target);
@@ -139,8 +190,17 @@ exports.updateCause = async (req, res) => {
     updateData.target = targetAmount;
   }
 
-  if (updateData.deadline !== undefined && Number.isNaN(new Date(updateData.deadline).getTime())) {
-    return res.status(400).json({ msg: 'Invalid deadline' });
+  if (updateData.deadline !== undefined) {
+    const deadline = new Date(updateData.deadline);
+    if (Number.isNaN(deadline.getTime())) {
+      return res.status(400).json({ msg: 'Invalid deadline' });
+    }
+    if (updateData.status === 'approved' || updateData.isVerified === true) {
+      if (deadline <= new Date()) {
+        return res.status(400).json({ msg: 'A published campaign needs a future deadline' });
+      }
+    }
+    updateData.deadline = deadline;
   }
 
   if (updateData.isVerified === true || updateData.status === 'approved') {
@@ -149,6 +209,7 @@ exports.updateCause = async (req, res) => {
     updateData.reviewedAt = new Date();
   } else if (updateData.isVerified === false && updateData.status === undefined) {
     updateData.status = 'paused';
+    updateData.reviewedAt = new Date();
   }
 
   try {
