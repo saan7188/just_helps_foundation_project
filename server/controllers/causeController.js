@@ -6,7 +6,15 @@ const getDateSort = { createdAt: -1 };
 exports.getCauses = async (req, res) => {
   try {
     const filter = { isVerified: true, status: { $in: ['approved'] } };
-    if (req.query.category) filter.category = new RegExp(`^${String(req.query.category).trim()}$ `, 'i');
+    if (req.query.category) { const category = String(req.query.category).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\if (req.query.category) filter.category = new RegExp(`^${String(req.query.category).trim()}$ `, 'i');'); filter.category = new RegExp(`^${category}const mongoose = require('mongoose');
+const Cause = require('../models/Cause');
+
+const getDateSort = { createdAt: -1 };
+
+exports.getCauses = async (req, res) => {
+  try {
+    const filter = { isVerified: true, status: { $in: ['approved'] } };
+    , 'i'); }
     const causes = await Cause.find(filter).sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
     res.json(causes);
   } catch (error) {
