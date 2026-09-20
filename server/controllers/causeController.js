@@ -39,7 +39,11 @@ exports.getCauseById = async (req, res) => {
   }
 
   try {
-    const cause = await Cause.findById(req.params.id);
+    const cause = await Cause.findOne({
+      _id: req.params.id,
+      isVerified: true
+    });
+
     if (!cause) return res.status(404).json({ msg: 'Campaign not found' });
     res.json(cause);
   } catch (error) {
@@ -60,7 +64,7 @@ exports.createCause = async (req, res) => {
     return res.status(400).json({ msg: 'A valid target amount is required' });
   }
 
-  if (!req.file && !req.body.image) {
+  if (!req.file) {
     return res.status(400).json({ msg: 'Campaign image is required' });
   }
 
@@ -72,7 +76,7 @@ exports.createCause = async (req, res) => {
       description: description.trim(),
       category: category?.trim() || 'General',
       target: targetAmount,
-      image: req.file ? `/uploads/${req.file.filename}` : req.body.image,
+      image: `/uploads/${req.file.filename}`,
       isVerified: false
     });
 
