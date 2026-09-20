@@ -1,25 +1,22 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
-  const token = localStorage.getItem('token'); 
-  const location = useLocation(); // To check current page
-
-  // Check if we are on the Admin Page
+  const { isAuthenticated, isAdmin, logout } = useAuth();
+  const location = useLocation();
   const isAdminPage = location.pathname === '/admin';
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
-
   return (
-    <nav style={{ 
-      padding: '18px 0', borderBottom: '1px solid #F3F4F6', background: 'white',
-      position: 'sticky', top: 0, zIndex: 1000, boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
+    <nav style={{
+      padding: '18px 0',
+      borderBottom: '1px solid #F3F4F6',
+      background: 'white',
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      boxShadow: '0 2px 10px rgba(0,0,0,0.03)'
     }}>
       <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        
-        {/* LOGO (Unchanged) */}
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '40px', height: '40px', background: '#FFFBEB', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -33,28 +30,32 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* LINKS */}
         <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          
-          {/* HIDE 'Home' if on Admin Page */}
           {!isAdminPage && (
             <Link to="/" style={{ textDecoration: 'none', color: '#4B5563', fontWeight: '700', fontSize: '0.95rem' }}>
               Home
             </Link>
           )}
 
-          {token ? (
+          {isAuthenticated ? (
             <>
-              {/* HIDE 'Your Campaign' if on Admin Page */}
               {!isAdminPage && (
                 <Link to="/create" style={{ textDecoration: 'none', color: '#4B5563', fontWeight: '700', fontSize: '0.95rem' }}>
                   Your Campaign
                 </Link>
               )}
-              
-              {/* Logout Button (Always visible if logged in) */}
-              <button 
-                onClick={handleLogout}
+
+              {isAdmin && !isAdminPage && (
+                <Link to="/admin" style={{ textDecoration: 'none', color: '#4B5563', fontWeight: '700', fontSize: '0.95rem' }}>
+                  Admin
+                </Link>
+              )}
+
+              <button
+                onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+                }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: '700', fontSize: '0.95rem' }}
               >
                 Logout
@@ -67,7 +68,6 @@ export default function Navbar() {
               </button>
             </Link>
           )}
-
         </div>
       </div>
     </nav>
