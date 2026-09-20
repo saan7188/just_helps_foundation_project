@@ -25,7 +25,7 @@ export default function DonationResult() {
           <div className="result-icon">↩</div>
           <span className="eyebrow">PAYMENT CANCELLED</span>
           <h1>No worries. Your donation wasn&apos;t completed.</h1>
-          <p>You can come back whenever you're ready. No donation was recorded from this cancelled attempt.</p>
+          <p>You can come back whenever you&apos;re ready. No donation was recorded from this cancelled attempt.</p>
           <div className="result-actions"><Link to="/causes" className="primary-link-button">Explore causes</Link><Link to="/" className="secondary-link-button">Back home</Link></div>
         </div>
       </div>
