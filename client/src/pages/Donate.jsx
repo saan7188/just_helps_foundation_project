@@ -216,7 +216,7 @@ export default function Donate() {
             <div style={{ marginBottom: '20px', padding: '10px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
                 <label style={{display:'flex', alignItems:'center', cursor:'pointer', gap:'10px'}}>
                     <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} style={{width:'18px', height:'18px'}} />
-                    <span style={{fontSize:'0.9rem', color:'#374151', fontWeight:'500'}}>Don't show my name publicly</span>
+                    <span style={{fontSize:'0.9rem', color:'#374151', fontWeight:'500'}}>Don&apos;t show my name publicly</span>
                 </label>
             </div>
 
