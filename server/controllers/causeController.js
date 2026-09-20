@@ -7,6 +7,7 @@ const publicStatusFilter = {
   isVerified: true,
   $or: [{ status: 'approved' }, { status: { $exists: false } }]
 };
+const publicCauseFields = 'title subtitle description category image isVerified isEssential isUrgent status target collected costText deadline createdAt';
 
 const escapeRegex = value => String(value).replace(/[.*+?^$\${}()|[\]\\]/g, '\\$&');
 
@@ -17,7 +18,9 @@ exports.getCauses = async (req, res) => {
       const category = String(req.query.category).trim();
       if (category) filter.category = new RegExp(escapeRegex(category), 'i');
     }
-    const causes = await Cause.find(filter).sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
+    const causes = await Cause.find(filter)
+      .select(publicCauseFields)
+      .sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
     res.json(causes);
   } catch (error) {
     console.error('Get causes error:', error);
@@ -32,7 +35,9 @@ exports.getUrgentCause = async (req, res) => {
     const cause = await Cause.findOne({
       ...publicStatusFilter,
       deadline: { $gt: now, $lte: soon }
-    }).sort({ isUrgent: -1, deadline: 1, createdAt: -1 });
+    })
+      .select(publicCauseFields)
+      .sort({ isUrgent: -1, deadline: 1, createdAt: -1 });
     res.json(cause || null);
   } catch (error) {
     console.error('Get urgent cause error:', error);
@@ -66,7 +71,7 @@ exports.getCauseById = async (req, res) => {
   }
 
   try {
-    const cause = await Cause.findOne({ _id: req.params.id, ...publicStatusFilter });
+    const cause = await Cause.findOne({ _id: req.params.id, ...publicStatusFilter }).select(publicCauseFields);
     if (!cause) return res.status(404).json({ msg: 'Campaign not found' });
     res.json(cause);
   } catch (error) {
@@ -93,9 +98,10 @@ exports.getProofFile = async (req, res) => {
 
     const reference = String(cause.proofFiles[index]);
     const filename = path.basename(reference);
-    const proofPath = path.join(__dirname, '..', 'private_uploads', filename);
+    const privateDirectory = path.join(__dirname, '..', 'private_uploads');
+    const proofPath = path.join(privateDirectory, filename);
 
-    if (!proofPath.startsWith(path.join(__dirname, '..', 'private_uploads') + path.sep)) {
+    if (!proofPath.startsWith(privateDirectory + path.sep)) {
       return res.status(400).json({ msg: 'Invalid proof document' });
     }
 
@@ -195,10 +201,8 @@ exports.updateCause = async (req, res) => {
     if (Number.isNaN(deadline.getTime())) {
       return res.status(400).json({ msg: 'Invalid deadline' });
     }
-    if (updateData.status === 'approved' || updateData.isVerified === true) {
-      if (deadline <= new Date()) {
-        return res.status(400).json({ msg: 'A published campaign needs a future deadline' });
-      }
+    if (deadline <= new Date()) {
+      return res.status(400).json({ msg: 'A campaign deadline must be in the future' });
     }
     updateData.deadline = deadline;
   }
