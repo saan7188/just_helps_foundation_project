@@ -28,7 +28,7 @@ export default function Admin() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const review = async (cause, status) => {
     try {
