@@ -5,7 +5,9 @@ const getDateSort = { createdAt: -1 };
 
 exports.getCauses = async (req, res) => {
   try {
-    const causes = await Cause.find({ isVerified: true }).sort(getDateSort);
+    const filter = { isVerified: true, status: { $in: ['approved'] } };
+    if (req.query.category) filter.category = new RegExp(`^${String(req.query.category).trim()}$ `, 'i');
+    const causes = await Cause.find(filter).sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
     res.json(causes);
   } catch (error) {
     console.error('Get causes error:', error);
@@ -15,7 +17,13 @@ exports.getCauses = async (req, res) => {
 
 exports.getUrgentCause = async (req, res) => {
   try {
-    const cause = await Cause.findOne({ isVerified: true }).sort({ deadline: 1, createdAt: -1 });
+    const now = new Date();
+    const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const cause = await Cause.findOne({
+      isVerified: true,
+      status: 'approved',
+      deadline: { $gt: now, $lte: soon }
+    }).sort({ isUrgent: -1, deadline: 1, createdAt: -1 });
     res.json(cause || null);
   } catch (error) {
     console.error('Get urgent cause error:', error);
@@ -25,11 +33,21 @@ exports.getUrgentCause = async (req, res) => {
 
 exports.getAllCausesAdmin = async (req, res) => {
   try {
-    const causes = await Cause.find().sort(getDateSort);
+    const causes = await Cause.find().populate('createdBy', 'name email').sort(getDateSort);
     res.json(causes);
   } catch (error) {
     console.error('Admin causes error:', error);
     res.status(500).json({ msg: 'Unable to load campaigns' });
+  }
+};
+
+exports.getMyCauses = async (req, res) => {
+  try {
+    const causes = await Cause.find({ createdBy: req.user.id }).sort(getDateSort);
+    res.json(causes);
+  } catch (error) {
+    console.error('My campaigns error:', error);
+    res.status(500).json({ msg: 'Unable to load your campaigns' });
   }
 };
 
@@ -41,7 +59,8 @@ exports.getCauseById = async (req, res) => {
   try {
     const cause = await Cause.findOne({
       _id: req.params.id,
-      isVerified: true
+      isVerified: true,
+      status: 'approved'
     });
 
     if (!cause) return res.status(404).json({ msg: 'Campaign not found' });
@@ -53,7 +72,7 @@ exports.getCauseById = async (req, res) => {
 };
 
 exports.createCause = async (req, res) => {
-  const { title, subtitle, description, category, target } = req.body;
+  const { title, subtitle, description, category, target, deadline } = req.body;
 
   if (!title?.trim() || !subtitle?.trim() || !description?.trim()) {
     return res.status(400).json({ msg: 'Title, subtitle and description are required' });
@@ -64,8 +83,12 @@ exports.createCause = async (req, res) => {
     return res.status(400).json({ msg: 'A valid target amount is required' });
   }
 
-  if (!req.file) {
+  if (!req.files?.image?.[0]) {
     return res.status(400).json({ msg: 'Campaign image is required' });
+  }
+
+  if (!deadline || Number.isNaN(new Date(deadline).getTime()) || new Date(deadline) <= new Date()) {
+    return res.status(400).json({ msg: 'Choose a valid future deadline' });
   }
 
   try {
@@ -76,8 +99,11 @@ exports.createCause = async (req, res) => {
       description: description.trim(),
       category: category?.trim() || 'General',
       target: targetAmount,
-      image: `/uploads/${req.file.filename}`,
-      isVerified: false
+      deadline: new Date(deadline),
+      image: `/uploads/${req.files.image[0].filename}`,
+      proofFiles: (req.files.proof || []).map(file => `/uploads/${file.filename}`),
+      isVerified: false,
+      status: 'pending'
     });
 
     res.status(201).json(cause);
@@ -92,7 +118,10 @@ exports.updateCause = async (req, res) => {
     return res.status(400).json({ msg: 'Invalid campaign ID' });
   }
 
-  const allowedFields = ['title', 'subtitle', 'description', 'category', 'target', 'isVerified', 'isEssential', 'costText', 'deadline', 'order'];
+  const allowedFields = [
+    'title', 'subtitle', 'description', 'category', 'target', 'isVerified',
+    'isEssential', 'isUrgent', 'costText', 'deadline', 'order', 'status', 'verificationNote'
+  ];
   const updateData = {};
 
   for (const field of allowedFields) {
@@ -100,6 +129,10 @@ exports.updateCause = async (req, res) => {
   }
 
   if (req.file) updateData.image = `/uploads/${req.file.filename}`;
+  if (req.files?.image?.[0]) updateData.image = `/uploads/${req.files.image[0].filename}`;
+  if (req.files?.proof?.length) {
+    updateData.proofFiles = req.files.proof.map(file => `/uploads/${file.filename}`);
+  }
 
   if (updateData.target !== undefined) {
     const targetAmount = Number(updateData.target);
@@ -107,6 +140,17 @@ exports.updateCause = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid target amount' });
     }
     updateData.target = targetAmount;
+  }
+
+  if (updateData.deadline !== undefined && Number.isNaN(new Date(updateData.deadline).getTime())) {
+    return res.status(400).json({ msg: 'Invalid deadline' });
+  }
+
+  if (updateData.isVerified === true) {
+    updateData.status = 'approved';
+    updateData.reviewedAt = new Date();
+  } else if (updateData.isVerified === false && updateData.status === undefined) {
+    updateData.status = 'paused';
   }
 
   try {
