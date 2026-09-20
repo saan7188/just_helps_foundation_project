@@ -59,7 +59,7 @@ export default function Donate() {
     navigate('/donation-result?status=cancelled');
   };
 
-  const completePayment = async method => {
+  const completePayment = async () => {
     setPaymentStep('PROCESSING');
     try {
       const res = await axios.post(`${API_URL}/api/payment/donate`, {
