@@ -110,6 +110,27 @@ export default function Admin() {
     }
   };
 
+  const openProof = async (causeId, index) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/causes/${causeId}/proof/${index}`, {
+        ...tokenConfig(),
+        responseType: 'blob'
+      });
+      const url = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.target = '_blank';
+      anchor.rel = 'noreferrer';
+      anchor.download = `just-helps-proof-${index + 1}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      alert(err.response?.data?.msg || 'Unable to open the proof document.');
+    }
+  };
+
   const saveSite = async event => {
     event.preventDefault();
     try {
@@ -278,14 +299,14 @@ export default function Admin() {
             <h3>Verification documents</h3>
             <div className="proof-list">
               {(selected.proofFiles || []).map((file, index) => (
-                <a
+                <button
                   key={file}
-                  href={`${API_URL}/api/causes/${selected._id}/proof/${index}`}
-                  target="_blank"
-                  rel="noreferrer"
+                  type="button"
+                  className="proof-link"
+                  onClick={() => openProof(selected._id, index)}
                 >
                   Proof document {index + 1} ↗
-                </a>
+                </button>
               ))}
               {!selected.proofFiles?.length && <span className="muted-note">No proof documents attached.</span>}
             </div>
