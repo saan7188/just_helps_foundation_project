@@ -32,27 +32,25 @@ export default function Donate() {
   
   // UI STATES
   const [showPaymentDemo, setShowPaymentDemo] = useState(false);
-  const [paymentStep, setPaymentStep] = useState('OPTIONS'); 
+  const [paymentStep, setPaymentStep] = useState('OPTIONS');
 
   useEffect(() => {
-    // 1. Fetch Campaign Data
-    if (id && id.length === 24) {
-        const fetchCause = async () => {
-          try {
-            // ✅ Use API_URL
-            const res = await axios.get(`${API_URL}/api/causes/${id}`);
-            setCause(res.data);
-          } catch (err) { console.error(err); }
-        };
-        fetchCause();
-    } else {
-        // 2. Static Fallback (For manual IDs like '101')
-        const staticData = { 
-            '101': 'Food for Hungry', '104': 'School Essentials', 
-            '102': "Women's Dignity", '103': "Shelter & Warmth" 
-        };
-        setCause({ title: staticData[id] || "General Donation", category: 'General' });
+    if (!id || !/^[a-f\\d]{24}$/i.test(id)) {
+      setCause(null);
+      return;
     }
+
+    const fetchCause = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/causes/${id}`);
+        setCause(res.data);
+      } catch (err) {
+        console.error(err);
+        setCause(null);
+      }
+    };
+
+    fetchCause();
   }, [id]);
 
   // CALCULATIONS
@@ -62,19 +60,17 @@ export default function Donate() {
 
   const handleInitiatePayment = (e) => {
     e.preventDefault();
-    if (!baseAmount) return alert("Please select or enter an amount.");
+    if (!cause) return alert("This campaign is no longer available for donation.");
+    if (!baseAmount || baseAmount < 1) return alert("Please select or enter a valid amount.");
     if (!donorName || !donorEmail) return alert("Please fill in your Name and Email.");
     setShowPaymentDemo(true);
     setPaymentStep('OPTIONS');
   };
 
-  const handleCancel = async () => {
-    if(window.confirm("Cancel transaction?")) {
-        try { 
-            // ✅ Use API_URL
-            await axios.post(`${API_URL}/api/payment/cancel`, { donorName, donorEmail }); 
-        } catch(err) {}
-        setShowPaymentDemo(false);
+  const handleCancel = () => {
+    if (window.confirm("Cancel transaction?")) {
+      setShowPaymentDemo(false);
+      setPaymentStep('OPTIONS');
     }
   };
 
@@ -119,7 +115,7 @@ export default function Donate() {
       </div>
       <p style={subHeaderStyle}>Choose a simulated payment method</p>
       {['💳 Demo Card', '📱 Demo UPI', '🏦 Demo Netbanking'].map((m, i) => (
-          <div key={i} onClick={() => setPaymentStep(m.includes('Card') ? 'CARD' : 'UPI')} style={methodStyle}>
+          <div key={i} onClick={() => setPaymentStep(m.includes('Card') ? 'CARD' : m.includes('UPI') ? 'UPI' : 'NETBANKING')} style={methodStyle}>
             <span>{m}</span> <span style={{ color: '#2B83EA' }}>&gt;</span>
           </div>
       ))}
