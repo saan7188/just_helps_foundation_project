@@ -1,200 +1,100 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
 import API_URL from '../api';
 
+const sample = {
+  title: 'Help provide essential food support',
+  subtitle: 'Support a family facing a sudden financial hardship.',
+  category: 'Food',
+  description: 'I am raising funds for essential food and household needs. The requested amount will be used only for the needs described here. I can provide supporting documents for verification.',
+  amountNeeded: '25000'
+};
+
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_PROOF_SIZE = 10 * 1024 * 1024;
+const imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
+const proofTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
 
-const Create = () => {
+export default function Create() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: '',
-    subtitle: '',
-    category: 'Fundraiser',
-    goalDescription: '',
-    amountNeeded: ''
-  });
+  const [form, setForm] = useState({ ...sample, title: '', subtitle: '', description: '', amountNeeded: '', deadline: '' });
   const [image, setImage] = useState(null);
+  const [proof, setProof] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const { title, subtitle, category, goalDescription, amountNeeded } = formData;
+  const applySample = () => setForm(prev => ({ ...prev, ...sample }));
 
-  const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
-
-  const onFileChange = e => {
-    const selectedFile = e.target.files?.[0];
-
-    if (!selectedFile) {
-      setImage(null);
-      return;
-    }
-
-    if (!ALLOWED_IMAGE_TYPES.includes(selectedFile.type)) {
-      setImage(null);
-      e.target.value = '';
-      alert('Please choose a JPG, PNG, or WebP image.');
-      return;
-    }
-
-    if (selectedFile.size > MAX_IMAGE_SIZE) {
-      setImage(null);
-      e.target.value = '';
-      alert('Image must be 5 MB or smaller.');
-      return;
-    }
-
-    setImage(selectedFile);
-  };
-
-  const onSubmit = async e => {
+  const submit = async e => {
     e.preventDefault();
-
-    const trimmedTitle = title.trim();
-    const trimmedSubtitle = subtitle.trim();
-    const trimmedDescription = goalDescription.trim();
-    const amount = Number(amountNeeded);
-
-    if (!trimmedTitle || !trimmedSubtitle || !trimmedDescription) {
-      alert('Please complete all required fields.');
-      return;
-    }
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Please enter a valid target amount.');
-      return;
-    }
-
-    if (!image) {
-      alert('Please choose a JPG, PNG, or WebP image up to 5 MB.');
-      return;
-    }
-
-    setLoading(true);
+    setError('');
+    if (!form.title.trim() || !form.subtitle.trim() || !form.description.trim()) return setError('Complete the title, short summary and story.');
+    if (Number(form.amountNeeded) <= 0) return setError('Enter a valid target amount.');
+    if (!form.deadline || new Date(form.deadline) <= new Date()) return setError('Choose a future deadline.');
+    if (!image) return setError('Add a campaign image.');
+    if (!proof.length) return setError('Add at least one supporting proof document.');
+    if (image.size > MAX_IMAGE_SIZE || !imageTypes.includes(image.type)) return setError('Campaign image must be JPG, PNG or WebP up to 5 MB.');
+    if (proof.some(file => file.size > MAX_PROOF_SIZE || !proofTypes.includes(file.type))) return setError('Each proof file must be PDF, JPG, PNG or WebP up to 10 MB.');
 
     const data = new FormData();
-    data.append('title', trimmedTitle);
-    data.append('subtitle', trimmedSubtitle);
-    data.append('category', category);
-    data.append('description', trimmedDescription);
-    data.append('goalAmount', amount);
+    Object.entries(form).forEach(([key, value]) => data.append(key === 'amountNeeded' ? 'target' : key, value));
     data.append('image', image);
+    proof.forEach(file => data.append('proof', file));
 
+    setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-
-      await axios.post(`${API_URL}/api/causes`, data, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-auth-token': token
-        }
-      });
-
-      alert('Campaign submitted successfully! It will appear after Admin approval.');
-      navigate('/');
+      await axios.post(`${API_URL}/api/causes`, data, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+      navigate('/dashboard', { replace: true });
     } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.msg || 'Failed to create campaign');
+      setError(err.response?.data?.msg || 'Unable to submit the fundraiser.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-8 bg-white shadow-lg rounded-xl mt-10">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6">Start a Fundraiser</h2>
+    <div className="container section create-page">
+      <div className="page-intro">
+        <span className="eyebrow">START A FUNDRAISER</span>
+        <h1>Tell us what happened. We’ll help you tell the story.</h1>
+        <p>Submit your campaign and supporting proof. The Just Helps team reviews it before it can appear publicly.</p>
+      </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label className="block text-gray-700 font-semibold">Campaign Title</label>
-          <input
-            type="text"
-            name="title"
-            value={title}
-            onChange={onChange}
-            maxLength={120}
-            className="w-full p-3 border rounded-lg"
-            required
-          />
+      <div className="process-strip">
+        <span>1. Register</span><span>→</span><span>2. Submit proof</span><span>→</span><span>3. Review</span><span>→</span><span>4. Campaign goes live</span>
+      </div>
+
+      <div className="sample-card">
+        <div><strong>In a hurry?</strong><p>Use this example as a starting point and replace the details with your real situation.</p></div>
+        <button className="secondary-button" type="button" onClick={applySample}>Use food support example</button>
+      </div>
+
+      <form onSubmit={submit} className="form-card">
+        {error && <div className="form-error">{error}</div>}
+        <div className="form-grid">
+          <label>Campaign name<input className="form-input" name="title" maxLength="120" value={form.title} onChange={e => setForm({ ...form, title:e.target.value })} placeholder="What do you need help with?" /></label>
+          <label>Short summary<input className="form-input" name="subtitle" maxLength="200" value={form.subtitle} onChange={e => setForm({ ...form, subtitle:e.target.value })} placeholder="One clear sentence" /></label>
+          <label>Cause<select className="form-input" value={form.category} onChange={e => setForm({ ...form, category:e.target.value })}><option>Food</option><option>Healthcare</option><option>Education</option><option>Shelter</option><option>Girl Child</option><option>Emergency</option><option>Other</option></select></label>
+          <label>Amount needed (₹)<input className="form-input" type="number" min="1" value={form.amountNeeded} onChange={e => setForm({ ...form, amountNeeded:e.target.value })} /></label>
+          <label>Deadline<input className="form-input" type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline:e.target.value })} /></label>
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-semibold">Short Subtitle</label>
-          <input
-            type="text"
-            name="subtitle"
-            value={subtitle}
-            onChange={onChange}
-            maxLength={200}
-            className="w-full p-3 border rounded-lg"
-            required
-          />
+        <label>Your story<textarea className="form-input" rows="8" maxLength="5000" value={form.description} onChange={e => setForm({ ...form, description:e.target.value })} placeholder="Explain what happened, who needs help, how the money will be used, and why this is urgent." /></label>
+
+        <div className="upload-grid">
+          <label>Campaign image<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setImage(e.target.files?.[0] || null)} /><small>JPG, PNG or WebP · up to 5 MB</small></label>
+          <label>Supporting proof<input type="file" multiple accept=".pdf,image/jpeg,image/png,image/webp" onChange={e => setProof(Array.from(e.target.files || []))} /><small>PDF, JPG, PNG or WebP · up to 10 MB each</small></label>
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-semibold">Category</label>
-          <select
-            name="category"
-            value={category}
-            onChange={onChange}
-            className="w-full p-3 border rounded-lg"
-          >
-            <option value="Fundraiser">Fundraiser</option>
-            <option value="Essential">Essential (Food/Medicine)</option>
-            <option value="Education">Education</option>
-          </select>
+        <div className="verification-callout">
+          <strong>🛡️ Verification before trust</strong>
+          <p>Your documents are provided to the Just Helps review team. They are not displayed publicly as campaign content.</p>
+          <p>We aim to provide an initial status update within approximately <strong>4 hours</strong>, subject to review-team availability and complete information.</p>
         </div>
 
-        <div>
-          <label className="block text-gray-700 font-semibold">Description</label>
-          <textarea
-            name="goalDescription"
-            value={goalDescription}
-            onChange={onChange}
-            maxLength={5000}
-            className="w-full p-3 border rounded-lg"
-            rows="4"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-semibold">Target Amount</label>
-          <input
-            type="number"
-            name="amountNeeded"
-            value={amountNeeded}
-            onChange={onChange}
-            min="1"
-            step="0.01"
-            className="w-full p-3 border rounded-lg"
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-700 font-semibold">Upload Image</label>
-          <input
-            type="file"
-            onChange={onFileChange}
-            className="w-full p-2"
-            accept="image/jpeg,image/png,image/webp"
-            required
-          />
-          <p className="text-sm text-gray-500 mt-1">JPG, PNG or WebP · Max 5 MB</p>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full py-3 rounded-lg text-white font-bold transition ${loading ? 'bg-gray-400' : 'bg-orange-600 hover:bg-orange-700'}`}
-        >
-          {loading ? 'Uploading...' : 'Submit for Approval'}
-        </button>
+        <button className="primary-button full" disabled={loading}>{loading ? 'Submitting for review…' : 'Submit for verification'}</button>
       </form>
     </div>
   );
-};
-
-export default Create;
+}

@@ -71,6 +71,7 @@ router.post('/donate', async (req, res) => {
     }
 
     const transactionId = createTransactionId();
+    const category = String(cause?.category || req.body.category || 'General').trim();
 
     if (cause) {
       const updatedCause = await Cause.findOneAndUpdate(
@@ -99,6 +100,7 @@ router.post('/donate', async (req, res) => {
         totalPaid,
         cause: cause ? String(cause._id) : 'general',
         causeTitle: cause?.title || causeTitle || 'General Donation',
+        category,
         isAnonymous: Boolean(isAnonymous),
         dedication: normalizedDedication.slice(0, 500),
         transactionId

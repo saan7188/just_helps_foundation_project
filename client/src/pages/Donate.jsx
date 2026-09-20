@@ -1,268 +1,155 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-
 import API_URL from '../api';
+
+const presets = [10, 50, 100, 500, 1000];
+
+const impactByCategory = {
+  Food: 'You made someone worry a little less about their next meal.',
+  Healthcare: 'You helped someone focus on getting better instead of worrying alone.',
+  Education: 'You gave a learner one more reason to keep going.',
+  Shelter: 'You helped make someone’s day a little safer.',
+  'Girl Child': 'You helped turn a basic need into one less thing to worry about.',
+  Emergency: 'You were there when someone needed help quickly.',
+  General: 'You made someone’s day a little easier.'
+};
 
 export default function Donate() {
   const { id } = useParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
-  
-  // DATA STATES
   const [cause, setCause] = useState(null);
-  
-  // PRESETS
-  const presets = [
-    { amount: 500, label: '🙏 Small Help' },
-    { amount: 1500, label: '❤️ Big Impact' },
-    { amount: 3000, label: '🌟 Life Changer' },
-    { amount: 5000, label: '👑 Hero Donation' }
-  ];
-  
-  // FORM STATES
-  const [amount, setAmount] = useState('');
-  const [customAmount, setCustomAmount] = useState(false);
+  const [loadingCause, setLoadingCause] = useState(Boolean(id));
+  const [amount, setAmount] = useState(100);
+  const [custom, setCustom] = useState(false);
+  const [category, setCategory] = useState(params.get('category') || 'General');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [dedication, setDedication] = useState('');
-  
-  // TIP STATE
-  const [tipPercentage, setTipPercentage] = useState(0); 
-  
-  // UI STATES
-  const [showPaymentDemo, setShowPaymentDemo] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState('OPTIONS');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!id || !/^[a-f\\d]{24}$/i.test(id)) {
-      setCause(null);
-      return;
-    }
-
-    const fetchCause = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/api/causes/${id}`);
-        setCause(res.data);
-      } catch (err) {
-        console.error(err);
-        setCause(null);
-      }
-    };
-
-    fetchCause();
+    if (!id) return;
+    axios.get(`${API_URL}/api/causes/${id}`)
+      .then(res => { setCause(res.data); setCategory(res.data.category || 'General'); })
+      .catch(() => setCause(null))
+      .finally(() => setLoadingCause(false));
   }, [id]);
 
-  // CALCULATIONS
-  const baseAmount = Number(amount) || 0; 
-  const tipAmount = Math.round(baseAmount * (tipPercentage / 100));
-  const totalAmount = baseAmount + tipAmount;
+  const donationAmount = Number(amount) || 0;
+  const total = donationAmount;
+  const impactMessage = useMemo(() => impactByCategory[category] || impactByCategory.General, [category]);
 
-  const handleInitiatePayment = (e) => {
+  const startPayment = e => {
     e.preventDefault();
-    if (!cause) return alert("This campaign is no longer available for donation.");
-    if (!baseAmount || baseAmount < 1) return alert("Please select or enter a valid amount.");
-    if (!donorName || !donorEmail) return alert("Please fill in your Name and Email.");
-    setShowPaymentDemo(true);
+    setError('');
+    if (donationAmount < 1) return setError('Choose an amount of at least ₹1.');
+    if (!donorName.trim()) return setError('Please enter your name.');
+    if (!/^\S+@\S+\.\S+$/.test(donorEmail.trim())) return setError('Please enter a valid email address.');
+    setShowPayment(true);
     setPaymentStep('OPTIONS');
   };
 
-  const handleCancel = () => {
-    if (window.confirm("Cancel transaction?")) {
-      setShowPaymentDemo(false);
-      setPaymentStep('OPTIONS');
-    }
+  const cancelPayment = () => {
+    setShowPayment(false);
+    navigate('/donation-result?status=cancelled');
   };
 
-  const handleFinalPayment = async () => {
+  const completePayment = async () => {
     setPaymentStep('PROCESSING');
-    
-    const donationData = {
-      causeId: id,
-      causeTitle: cause?.title || 'General',
-      amount: baseAmount,    // This updates the Progress Bar
-      tip: tipAmount,        // This goes to Platform
-      totalPaid: totalAmount,
-      donorName, donorEmail, isAnonymous, dedication
-    };
-
     try {
-      // ✅ Use API_URL
-      const res = await axios.post(`${API_URL}/api/payment/donate`, donationData);
-      
-      // UX Simulation Sequence
-      setTimeout(() => {
-        setPaymentStep('SUCCESS');
-        setTimeout(() => {
-          alert(`✅ Demo donation recorded!\nTransaction ID: ${res.data.transactionId || 'TXN_DEMO'}`);
-          navigate('/'); // Redirect to Home to see updated progress
-        }, 2500);
-      }, 2000);
+      const res = await axios.post(`${API_URL}/api/payment/donate`, {
+        causeId: id || undefined,
+        causeTitle: cause?.title || `${category} Support`,
+        category,
+        amount: donationAmount,
+        tip: 0,
+        totalPaid: total,
+        donorName: donorName.trim(),
+        donorEmail: donorEmail.trim().toLowerCase(),
+        isAnonymous,
+        dedication
+      });
 
+      navigate(`/donation-result?status=success&transaction=${encodeURIComponent(res.data.transactionId)}&category=${encodeURIComponent(res.data.category || category)}&cause=${encodeURIComponent(res.data.causeTitle || cause?.title || '')}&impact=${encodeURIComponent(res.data.impactMessage || impactMessage)}`, { replace: true });
     } catch (err) {
       console.error(err);
-      alert("Payment Failed. Please try again.");
-      setShowPaymentDemo(false);
+      setPaymentStep('FAILED');
+      setError(err.response?.data?.msg || 'The payment could not be completed.');
     }
   };
 
-  // --- RENDER HELPERS (Demo payment modal) ---
-  const renderOptions = () => (
-    <>
-      <div style={demoNoticeStyle}>
-        <strong>Demo payment only</strong>
-        <div>No real money, card details, UPI credentials, or bank details are processed.</div>
-      </div>
-      <p style={subHeaderStyle}>Choose a simulated payment method</p>
-      {['💳 Demo Card', '📱 Demo UPI', '🏦 Demo Netbanking'].map((m, i) => (
-          <div key={i} onClick={() => setPaymentStep(m.includes('Card') ? 'CARD' : m.includes('UPI') ? 'UPI' : 'NETBANKING')} style={methodStyle}>
-            <span>{m}</span> <span style={{ color: '#2B83EA' }}>&gt;</span>
-          </div>
-      ))}
-      <button onClick={handleCancel} style={cancelBtnStyle}>Cancel</button>
-    </>
-  );
-
-  const renderCard = () => (
-    <div>
-      <div onClick={() => setPaymentStep('OPTIONS')} style={backBtnStyle}>&lt; Back</div>
-      <p style={subHeaderStyle}>Demo Card</p>
-      <div style={demoNoticeStyle}>Use this screen to demonstrate the payment flow. Do not enter real card information.</div>
-      <div style={demoCardStyle}>
-        <div>•••• •••• •••• 0000</div>
-        <div style={{fontSize:'0.8rem', marginTop:'8px'}}>Demo payment method</div>
-      </div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Simulate Donation ₹{totalAmount}</button>
-    </div>
-  );
-
-  const renderUPI = () => (
-    <div style={{ textAlign: 'center' }}>
-      <div onClick={() => setPaymentStep('OPTIONS')} style={backBtnStyle}>&lt; Back</div>
-      <p style={subHeaderStyle}>Demo UPI</p>
-      <div style={demoNoticeStyle}>No real UPI ID or QR payment is used in this portfolio demo.</div>
-      <div style={demoUpiStyle}>UPI payment simulation<br/><strong>₹{totalAmount}</strong></div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Simulate Donation</button>
-    </div>
-  );
+  if (loadingCause) return <div className="empty-state">Preparing your donation…</div>;
+  if (id && !cause) return <div className="empty-state"><h2>This campaign is unavailable</h2><Link to="/causes">Explore other causes</Link></div>;
 
   return (
-    <div className="container" style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto', minHeight: '80vh' }}>
-      
-      <div style={{display: 'flex', gap: '40px', flexDirection: 'row', flexWrap: 'wrap'}}>
-        
-        {/* LEFT: AMOUNT SELECTION */}
-        <div style={{ flex: 1, minWidth: '300px' }}>
-            <h3 style={sectionTitle}>1. Choose Amount</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
-                {presets.map((opt) => (
-                    <button 
-                        key={opt.amount} 
-                        onClick={() => { setAmount(opt.amount); setCustomAmount(false); }}
-                        style={parseInt(amount) === opt.amount && !customAmount ? activePresetStyle : presetStyle}
-                    >
-                        <div style={{fontWeight:'bold', fontSize:'1.2rem'}}>₹{opt.amount}</div>
-                        <div style={{fontSize:'0.8rem', opacity: 0.8}}>{opt.label}</div>
-                    </button>
-                ))}
-            </div>
-            
-            <div style={{position: 'relative', marginBottom: '25px'}}>
-                <span style={{position:'absolute', left:'15px', top:'13px', color:'#6B7280', fontWeight:'bold'}}>₹</span>
-                <input type="number" placeholder="Enter custom amount" value={amount} onChange={e => { setAmount(e.target.value); setCustomAmount(true); }} style={{...inputStyle, paddingLeft: '30px'}} />
-            </div>
+    <div className="container section donation-page">
+      <div className="donation-layout">
+        <section>
+          <div className="page-intro compact">
+            <span className="eyebrow">MAKE A DIFFERENCE</span>
+            <h1>{cause ? cause.title : `${category} Support`}</h1>
+            <p>{cause ? cause.subtitle : `Your contribution helps verified ${category.toLowerCase()} needs identified through Just Helps.`}</p>
+          </div>
 
-            {/* TIP SELECTOR */}
-            <div style={{background: '#F3F4F6', padding: '15px', borderRadius: '8px', border: '1px solid #E5E7EB'}}>
-                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'10px', fontSize:'0.9rem', fontWeight:'600'}}>
-                    <span>Support Just Helps Platform?</span>
-                    <span style={{color:'#D97706'}}>₹{tipAmount}</span>
-                </div>
-                <div style={{display:'flex', gap:'10px'}}>
-                    {[0, 5, 10, 15].map(pct => (
-                        <button 
-                            key={pct}
-                            onClick={() => setTipPercentage(pct)}
-                            style={{
-                                flex: 1, padding: '5px', borderRadius: '4px', border: '1px solid #D1D5DB', cursor:'pointer',
-                                background: tipPercentage === pct ? '#374151' : 'white',
-                                color: tipPercentage === pct ? 'white' : '#374151',
-                                fontSize: '0.85rem'
-                            }}
-                        >
-                            {pct}%
-                        </button>
-                    ))}
-                </div>
-                <p style={{fontSize:'0.75rem', color:'#6B7280', marginTop:'8px'}}>
-                    We charge 0% fees. This optional tip helps us run the secure server.
-                </p>
+          {cause && (
+            <div className="donation-campaign-note">
+              🛡️ <strong>Verified campaign</strong>
+              <span>This donation is specifically for this campaign.</span>
             </div>
-        </div>
+          )}
 
-        {/* RIGHT: DETAILS */}
-        <div style={{ flex: 1, minWidth: '300px', background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #F3F4F6' }}>
-            <h3 style={sectionTitle}>2. Your Details</h3>
-            
-            {/* Added: SHOW CAUSE NAME */}
-            <div style={{marginBottom:'15px', padding:'10px', background:'#FFF7ED', borderRadius:'6px', borderLeft:'4px solid #D97706', color:'#9A3412', fontWeight:'600', fontSize:'0.9rem'}}>
-               ❤️ Supporting: {cause?.title || 'Loading...'}
+          <div className="amount-card">
+            <h2>Choose your contribution</h2>
+            <p>Every amount matters.</p>
+            <div className="amount-grid">
+              {presets.map(value => (
+                <button key={value} type="button" className={!custom && donationAmount === value ? 'amount-active' : 'amount-button'} onClick={() => { setAmount(value); setCustom(false); }}>
+                  ₹{value}
+                </button>
+              ))}
             </div>
+            <button type="button" className={custom ? 'amount-active custom-amount' : 'amount-button custom-amount'} onClick={() => setCustom(true)}>₹ Other amount</button>
+            {custom && <input autoFocus type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount" className="form-input large" />}
+          </div>
 
-            <input type="text" required placeholder="Full Name" value={donorName} onChange={e => setDonorName(e.target.value)} style={{ ...inputStyle, marginBottom: '15px' }} />
-            <input type="email" required placeholder="Email Address" value={donorEmail} onChange={e => setDonorEmail(e.target.value)} style={{ ...inputStyle, marginBottom: '15px' }} />
-            <textarea rows="2" placeholder="Dedication (Optional - e.g. In memory of...)" value={dedication} onChange={e => setDedication(e.target.value)} style={{...inputStyle, marginBottom: '15px'}} />
-            
-            <div style={{ marginBottom: '20px', padding: '10px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                <label style={{display:'flex', alignItems:'center', cursor:'pointer', gap:'10px'}}>
-                    <input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} style={{width:'18px', height:'18px'}} />
-                    <span style={{fontSize:'0.9rem', color:'#374151', fontWeight:'500'}}>Don&apos;t show my name publicly</span>
-                </label>
-            </div>
+          <div className="info-card">
+            <strong>80G information</strong>
+            <p>If this organization and donation are eligible for a Section 80G benefit, the applicable deduction is subject to current law and the foundation’s registration and receipt requirements.</p>
+          </div>
+        </section>
 
-            <button onClick={handleInitiatePayment} style={mainDonateBtn}>
-                Donate ₹{totalAmount} Now
-            </button>
-            <div style={{textAlign: 'center', marginTop: '10px', fontSize: '0.8rem', color: '#6B7280'}}>
-                🛡️ Portfolio demo • No real payment processed
-            </div>
-        </div>
+        <section className="donor-card">
+          <div className="donor-card-header"><span>YOUR CONTRIBUTION</span><strong>₹{total.toLocaleString()}</strong></div>
+          <label>Name<input className="form-input" value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
+          <label>Email<input className="form-input" type="email" value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
+          <label>Optional dedication<textarea className="form-input" rows="3" value={dedication} onChange={e => setDedication(e.target.value)} placeholder="In memory of… or a message" /></label>
+          <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don&apos;t show my name publicly</label>
+          {error && <div className="form-error">{error}</div>}
+          <button className="primary-button full" onClick={startPayment}>Continue to payment · ₹{total.toLocaleString()}</button>
+          <small className="demo-note">Portfolio demo: no real money or payment credentials are processed.</small>
+        </section>
       </div>
 
-      {/* DEMO PAYMENT MODAL */}
-      {showPaymentDemo && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: '400px', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', fontFamily: 'system-ui' }}>
-            <div style={{ background: '#1A1F36', padding: '20px', color: 'white', position: 'relative' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Just Helps Foundation</div><div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>Simulated Payment — No Real Money</div>
-              <div style={{ position:'absolute', right:'20px', top:'20px', fontSize:'1.2rem', fontWeight:'bold' }}>₹{totalAmount}</div>
-              <button onClick={handleCancel} style={{ position: 'absolute', top: '5px', right: '10px', background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
-            </div>
-            <div style={{ padding: '20px', minHeight: '350px', background: '#F7FAFC' }}>
-              {paymentStep === 'OPTIONS' && renderOptions()}
-              {paymentStep === 'CARD' && renderCard()}
-              {(paymentStep === 'UPI' || paymentStep === 'NETBANKING') && renderUPI()}
-              {paymentStep === 'PROCESSING' && <div style={{textAlign:'center', paddingTop:'80px'}}><b>Recording Demo Donation...</b><p style={{color:'#6B7280',fontSize:'0.85rem'}}>No real payment is being processed.</p></div>}
-              {paymentStep === 'SUCCESS' && <div style={{textAlign:'center', paddingTop:'80px', color:'#10B981'}}><h1>✓</h1><h3>Demo Donation Recorded</h3><p style={{color:'#6B7280'}}>No real payment was processed.</p></div>}
-            </div>
+      {showPayment && (
+        <div className="modal-backdrop">
+          <div className="payment-modal">
+            <header><strong>Just Helps Payment</strong><span>₹{total.toLocaleString()}</span></header>
+            <div className="demo-banner">Demo payment only · no real card, UPI or bank details are collected.</div>
+            {paymentStep === 'OPTIONS' && <>
+              <h3>Choose payment method</h3>
+              {['UPI', 'Card', 'Net Banking'].map(method => <button key={method} className="payment-option" onClick={() => completePayment(method)}>{method}<span>→</span></button>)}
+              <button className="cancel-payment" onClick={cancelPayment}>Cancel payment</button>
+            </>}
+            {paymentStep === 'PROCESSING' && <div className="payment-state"><div className="spinner" /><h3>Confirming your donation…</h3><p>Please wait.</p></div>}
+            {paymentStep === 'FAILED' && <div className="payment-state"><h2>Something went wrong.</h2><p>{error}</p><button className="primary-button" onClick={() => setPaymentStep('OPTIONS')}>Try again</button><button className="text-button" onClick={cancelPayment}>Cancel</button></div>}
           </div>
         </div>
       )}
     </div>
   );
 }
-
-// STYLES
-const sectionTitle = { fontSize: '1.2rem', color: '#374151', marginBottom: '15px', borderBottom: '2px solid #E5E7EB', paddingBottom: '10px' };
-const inputStyle = { width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '1rem', background: '#fff' };
-const subHeaderStyle = { fontSize: '0.85rem', color: '#6B7280', marginBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' };
-const demoNoticeStyle = { background:'#FFF7ED', border:'1px solid #FED7AA', color:'#9A3412', padding:'12px', borderRadius:'8px', fontSize:'0.82rem', lineHeight:1.4, marginBottom:'15px' };
-const demoCardStyle = { background:'linear-gradient(135deg,#374151,#111827)', color:'white', borderRadius:'12px', padding:'20px', margin:'15px 0', fontFamily:'monospace', fontSize:'1.1rem', letterSpacing:'2px' };
-const demoUpiStyle = { background:'white', border:'1px dashed #9CA3AF', borderRadius:'10px', padding:'30px 15px', margin:'15px 0', color:'#374151', lineHeight:1.8 };
-const methodStyle = { background: 'white', padding: '15px', borderRadius: '6px', marginBottom: '10px', border: '1px solid #E5E7EB', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' };
-const payBtnStyle = { width: '100%', padding: '14px', background: '#2B83EA', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' };
-const backBtnStyle = { fontSize: '0.85rem', color: '#2B83EA', cursor: 'pointer', marginBottom: '15px', fontWeight: '600', display: 'inline-block' };
-const cancelBtnStyle = { width: '100%', padding: '12px', marginTop: '15px', border: '1px solid #EF4444', color: '#EF4444', background: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
-const mainDonateBtn = { width: '100%', padding: '16px', background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', color: 'white', border: 'none', borderRadius: '10px', fontSize: '1.2rem', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 10px 20px -5px rgba(217, 119, 6, 0.4)' };
-const presetStyle = { padding: '20px', borderRadius: '12px', border: '2px solid #E5E7EB', background: 'white', cursor: 'pointer', textAlign: 'center', color: '#4B5563' };
-const activePresetStyle = { ...presetStyle, borderColor: '#D97706', background: '#FFFBEB', color: '#D97706' };

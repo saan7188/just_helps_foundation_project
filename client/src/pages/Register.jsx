@@ -92,7 +92,7 @@ export default function Register() {
 
       login(res.data.token, res.data.isAdmin);
       alert('Verification successful! Account created.');
-      navigate('/create');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed. Please try again.');
     } finally {
@@ -198,7 +198,7 @@ export default function Register() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  minLength="6"
+                  minLength="10"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
