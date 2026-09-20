@@ -72,24 +72,45 @@ router.post('/donate', async (req, res) => {
 
     const transactionId = createTransactionId();
 
-    const donation = await Donation.create({
-      donorName: normalizedName,
-      donorEmail: normalizedEmail,
-      amount: donationAmount,
-      tipAmount,
-      totalPaid,
-      cause: cause ? String(cause._id) : 'general',
-      causeTitle: cause?.title || causeTitle || 'General Donation',
-      isAnonymous: Boolean(isAnonymous),
-      dedication: normalizedDedication.slice(0, 500),
-      transactionId
-    });
-
     if (cause) {
-      await Cause.updateOne(
-        { _id: cause._id },
-        { $inc: { collected: donationAmount } }
+      const updatedCause = await Cause.findOneAndUpdate(
+        {
+          _id: cause._id,
+          isVerified: true,
+          $expr: { $lte: [{ $add: ['$collected', donationAmount] }, '$target'] }
+        },
+        { $inc: { collected: donationAmount } },
+        { new: true }
       );
+
+      if (!updatedCause) {
+        return res.status(400).json({ msg: 'Donation would exceed the campaign goal' });
+      }
+    }
+
+    let donation;
+
+    try {
+      donation = await Donation.create({
+        donorName: normalizedName,
+        donorEmail: normalizedEmail,
+        amount: donationAmount,
+        tipAmount,
+        totalPaid,
+        cause: cause ? String(cause._id) : 'general',
+        causeTitle: cause?.title || causeTitle || 'General Donation',
+        isAnonymous: Boolean(isAnonymous),
+        dedication: normalizedDedication.slice(0, 500),
+        transactionId
+      });
+    } catch (donationError) {
+      if (cause) {
+        await Cause.updateOne(
+          { _id: cause._id },
+          { $inc: { collected: -donationAmount } }
+        );
+      }
+      throw donationError;
     }
 
     // Receipt is a demo receipt. It must not claim that a real payment
