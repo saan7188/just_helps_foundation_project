@@ -2,19 +2,17 @@ const mongoose = require('mongoose');
 const Cause = require('../models/Cause');
 
 const getDateSort = { createdAt: -1 };
+const publicStatusFilter = {
+  isVerified: true,
+  $or: [{ status: 'approved' }, { status: { $exists: false } }]
+};
 
 exports.getCauses = async (req, res) => {
   try {
-    const filter = { isVerified: true, $or: [{ status: 'approved' }, { status: { $exists: false } }] };
-    if (req.query.category) { const category = String(req.query.category).trim().replace(/[.*+?^${}()|[\]\\]/g, '\\if (req.query.category) filter.category = new RegExp(`^${String(req.query.category).trim()}$ `, 'i');'); filter.category = new RegExp(`^${category}const mongoose = require('mongoose');
-const Cause = require('../models/Cause');
-
-const getDateSort = { createdAt: -1 };
-
-exports.getCauses = async (req, res) => {
-  try {
-    const filter = { isVerified: true, status: { $in: ['approved'] } };
-    , 'i'); }
+    const filter = { ...publicStatusFilter };
+    if (req.query.category) {
+      filter.category = new RegExp(String(req.query.category).trim(), 'i');
+    }
     const causes = await Cause.find(filter).sort({ isUrgent: -1, deadline: 1, order: 1, createdAt: -1 });
     res.json(causes);
   } catch (error) {
@@ -28,8 +26,7 @@ exports.getUrgentCause = async (req, res) => {
     const now = new Date();
     const soon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     const cause = await Cause.findOne({
-      isVerified: true,
-      status: 'approved',
+      ...publicStatusFilter,
       deadline: { $gt: now, $lte: soon }
     }).sort({ isUrgent: -1, deadline: 1, createdAt: -1 });
     res.json(cause || null);
@@ -65,12 +62,7 @@ exports.getCauseById = async (req, res) => {
   }
 
   try {
-    const cause = await Cause.findOne({
-      _id: req.params.id,
-      isVerified: true,
-      status: 'approved'
-    });
-
+    const cause = await Cause.findOne({ _id: req.params.id, ...publicStatusFilter });
     if (!cause) return res.status(404).json({ msg: 'Campaign not found' });
     res.json(cause);
   } catch (error) {
@@ -108,8 +100,8 @@ exports.createCause = async (req, res) => {
       category: category?.trim() || 'General',
       target: targetAmount,
       deadline: new Date(deadline),
-      image: `/uploads/${req.files.image[0].filename}`,
-      proofFiles: (req.files.proof || []).map(file => `/uploads/${file.filename}`),
+      image: '/uploads/' + req.files.image[0].filename,
+      proofFiles: (req.files.proof || []).map(file => '/uploads/' + file.filename),
       isVerified: false,
       status: 'pending'
     });
@@ -136,11 +128,8 @@ exports.updateCause = async (req, res) => {
     if (req.body[field] !== undefined) updateData[field] = req.body[field];
   }
 
-  if (req.file) updateData.image = `/uploads/${req.file.filename}`;
-  if (req.files?.image?.[0]) updateData.image = `/uploads/${req.files.image[0].filename}`;
-  if (req.files?.proof?.length) {
-    updateData.proofFiles = req.files.proof.map(file => `/uploads/${file.filename}`);
-  }
+  if (req.files?.image?.[0]) updateData.image = '/uploads/' + req.files.image[0].filename;
+  if (req.files?.proof?.length) updateData.proofFiles = req.files.proof.map(file => '/uploads/' + file.filename);
 
   if (updateData.target !== undefined) {
     const targetAmount = Number(updateData.target);
@@ -154,20 +143,16 @@ exports.updateCause = async (req, res) => {
     return res.status(400).json({ msg: 'Invalid deadline' });
   }
 
-  if (updateData.isVerified === true) {
+  if (updateData.isVerified === true || updateData.status === 'approved') {
     updateData.status = 'approved';
+    updateData.isVerified = true;
     updateData.reviewedAt = new Date();
   } else if (updateData.isVerified === false && updateData.status === undefined) {
     updateData.status = 'paused';
   }
 
   try {
-    const cause = await Cause.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-
+    const cause = await Cause.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true, runValidators: true });
     if (!cause) return res.status(404).json({ msg: 'Campaign not found' });
     res.json(cause);
   } catch (error) {
