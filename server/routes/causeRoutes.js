@@ -2,16 +2,21 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
+const fs = require('fs');
 const auth = require('../middleware/authMiddleware');
 const admin = require('../middleware/adminMiddleware');
 const causeController = require('../controllers/causeController');
 
 // Multer setup
+const uploadDirectory = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(uploadDirectory, { recursive: true });
+
 const storage = multer.diskStorage({
-  destination: 'uploads/',
+  destination: uploadDirectory,
   filename: (req, file, cb) => {
     const extension = path.extname(file.originalname).toLowerCase();
-    cb(null, `${file.fieldname}-${Date.now()}-${Math.round(Math.random() * 1e9)}${extension}`);
+    cb(null, `${file.fieldname}-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${extension}`);
   }
 });
 
