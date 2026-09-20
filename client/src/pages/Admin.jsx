@@ -71,6 +71,11 @@ const Admin = () => {
     data.append('category', editingItem.category);
     if (newImage) data.append('image', newImage);
 
+    if (!editingItem.title?.trim() || !editingItem.subtitle?.trim()) {
+      alert("Title and subtitle are required");
+      return;
+    }
+
     try {
       await axios.put(`${API_URL}/api/causes/${editingItem._id}`, data, {
         headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
