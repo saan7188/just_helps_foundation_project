@@ -92,7 +92,7 @@ export default function Register() {
 
       login(res.data.token, res.data.isAdmin);
       alert('Verification successful! Account created.');
-      navigate('/create');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed. Please try again.');
     } finally {
