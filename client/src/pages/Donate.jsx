@@ -48,6 +48,7 @@ export default function Donate() {
     e.preventDefault();
     setError('');
     if (donationAmount < 1) return setError('Choose an amount of at least ₹1.');
+    if (donationAmount > 1000000) return setError('The maximum demo contribution is ₹10,00,000.');
     if (!donorName.trim()) return setError('Please enter your name.');
     if (!/^\S+@\S+\.\S+$/.test(donorEmail.trim())) return setError('Please enter a valid email address.');
     setShowPayment(true);
@@ -79,7 +80,7 @@ export default function Donate() {
     } catch (err) {
       console.error(err);
       setPaymentStep('FAILED');
-      setError(err.response?.data?.msg || 'The payment could not be completed.');
+      setError(err.response?.data?.msg || 'The donation could not be recorded.');
     }
   };
 
@@ -98,7 +99,7 @@ export default function Donate() {
 
           {cause && (
             <div className="donation-campaign-note">
-              🛡️ <strong>Verified campaign</strong>
+              ✓ <strong>Verified campaign</strong>
               <span>This donation is specifically for this campaign.</span>
             </div>
           )}
@@ -108,45 +109,59 @@ export default function Donate() {
             <p>Every amount matters.</p>
             <div className="amount-grid">
               {presets.map(value => (
-                <button key={value} type="button" className={!custom && donationAmount === value ? 'amount-active' : 'amount-button'} onClick={() => { setAmount(value); setCustom(false); }}>
+                <button key={value} type="button" aria-pressed={!custom && donationAmount === value} className={!custom && donationAmount === value ? 'amount-active' : 'amount-button'} onClick={() => { setAmount(value); setCustom(false); }}>
                   ₹{value}
                 </button>
               ))}
             </div>
-            <button type="button" className={custom ? 'amount-active custom-amount' : 'amount-button custom-amount'} onClick={() => setCustom(true)}>₹ Other amount</button>
-            {custom && <input autoFocus type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount" className="form-input large" />}
+            <button type="button" aria-pressed={custom} className={custom ? 'amount-active custom-amount' : 'amount-button custom-amount'} onClick={() => setCustom(true)}>Other amount</button>
+            {custom && <label className="auth-field amount-custom-field">Amount<input autoFocus type="number" min="1" max="1000000" step="1" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Enter amount" /></label>}
           </div>
 
           <div className="info-card">
-            <strong>80G information</strong>
-            <p>If this organization and donation are eligible for a Section 80G benefit, the applicable deduction is subject to current law and the foundation’s registration and receipt requirements.</p>
+            <strong>Tax information</strong>
+            <p>Any Section 80G benefit depends on the organization’s legal eligibility, registration and receipt requirements. This portfolio demo does not issue tax certificates.</p>
           </div>
         </section>
 
-        <section className="donor-card">
+        <form className="donor-card" onSubmit={startPayment}>
           <div className="donor-card-header"><span>YOUR CONTRIBUTION</span><strong>₹{total.toLocaleString()}</strong></div>
-          <label>Name<input className="form-input" value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
-          <label>Email<input className="form-input" type="email" value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
-          <label>Optional dedication<textarea className="form-input" rows="3" value={dedication} onChange={e => setDedication(e.target.value)} placeholder="In memory of… or a message" /></label>
+          <label>Name<input className="form-input" autoComplete="name" required value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
+          <label>Email<input className="form-input" type="email" autoComplete="email" required value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
+          <label>Optional dedication<textarea className="form-input" rows="3" maxLength="500" value={dedication} onChange={e => setDedication(e.target.value)} placeholder="In memory of… or a message" /></label>
           <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don&apos;t show my name publicly</label>
-          {error && <div className="form-error">{error}</div>}
-          <button className="primary-button full" onClick={startPayment}>Continue to payment · ₹{total.toLocaleString()}</button>
+          {error && <div className="form-error" role="alert">{error}</div>}
+          <button className="primary-button full" type="submit">Continue to payment · ₹{total.toLocaleString()}</button>
           <small className="demo-note">Portfolio demo: no real money or payment credentials are processed.</small>
-        </section>
+        </form>
       </div>
 
       {showPayment && (
-        <div className="modal-backdrop">
-          <div className="payment-modal">
-            <header><strong>Just Helps Payment</strong><span>₹{total.toLocaleString()}</span></header>
-            <div className="demo-banner">Demo payment only · no real card, UPI or bank details are collected.</div>
+        <div className="modal-backdrop" role="presentation">
+          <div className="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-title">
+            <header><strong id="payment-title">Just Helps demo payment</strong><span>₹{total.toLocaleString()}</span></header>
+            <div className="demo-banner">Demo only · no real card, UPI or bank details are collected.</div>
+
             {paymentStep === 'OPTIONS' && <>
-              <h3>Choose payment method</h3>
-              {['UPI', 'Card', 'Net Banking'].map(method => <button key={method} className="payment-option" onClick={() => completePayment(method)}>{method}<span>→</span></button>)}
-              <button className="cancel-payment" onClick={cancelPayment}>Cancel payment</button>
+              <h3>Choose a demo payment method</h3>
+              {['UPI', 'Card', 'Net Banking'].map(method => (
+                <button key={method} type="button" className="payment-option" onClick={completePayment}>
+                  {method}<span aria-hidden="true">→</span>
+                </button>
+              ))}
+              <button type="button" className="cancel-payment" onClick={cancelPayment}>Cancel payment</button>
             </>}
-            {paymentStep === 'PROCESSING' && <div className="payment-state"><div className="spinner" /><h3>Confirming your donation…</h3><p>Please wait.</p></div>}
-            {paymentStep === 'FAILED' && <div className="payment-state"><h2>Something went wrong.</h2><p>{error}</p><button className="primary-button" onClick={() => setPaymentStep('OPTIONS')}>Try again</button><button className="text-button" onClick={cancelPayment}>Cancel</button></div>}
+
+            {paymentStep === 'PROCESSING' && <div className="payment-state" aria-live="polite"><div className="spinner" /><h3>Recording your demo donation…</h3><p>Please wait.</p></div>}
+
+            {paymentStep === 'FAILED' && (
+              <div className="payment-state" role="alert">
+                <h2>Something went wrong.</h2>
+                <p>{error}</p>
+                <button type="button" className="primary-button" onClick={() => setPaymentStep('OPTIONS')}>Try again</button>
+                <button type="button" className="text-button" onClick={cancelPayment}>Cancel</button>
+              </div>
+            )}
           </div>
         </div>
       )}
