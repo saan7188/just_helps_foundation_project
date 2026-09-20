@@ -61,6 +61,7 @@ export default function Login() {
 
       // Success
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('isAdmin', String(Boolean(res.data.isAdmin)));
       
       // Stop Loading immediately
       setLoading(false);
