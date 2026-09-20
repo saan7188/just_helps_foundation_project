@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
-// ✅ 1. Define Server URL centrally
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 export default function Register() {
   const navigate = useNavigate();
