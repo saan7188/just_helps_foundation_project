@@ -1,9 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { isAuthenticated, isAdmin, logout } = useAuth();
-  const location = useLocation();
 
   return (
     <nav className="site-nav">
