@@ -198,7 +198,7 @@ export default function Register() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
-                  minLength="6"
+                  minLength="10"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
