@@ -18,6 +18,7 @@ import ResetPassword from './pages/ResetPassword';
 import Create from './pages/Create';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
 import Donate from './pages/Donate';
 import DonationResult from './pages/DonationResult';
 
@@ -75,6 +76,7 @@ function App() {
 
           <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         </Routes>
       </main>

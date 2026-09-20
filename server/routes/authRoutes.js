@@ -210,6 +210,61 @@ router.post('/register', async (req, res) => {
   }
 });
 
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { msg: 'Too many admin login attempts. Please try again later.' }
+});
+
+router.post('/admin-login', adminLoginLimiter, async (req, res) => {
+  const username = String(req.body.username || '').trim();
+  const password = String(req.body.password || '');
+  const configuredUsername = String(process.env.ADMIN_USERNAME || '').trim();
+  const configuredHash = String(process.env.ADMIN_PASSWORD_HASH || '');
+  const configuredPassword = String(process.env.ADMIN_PASSWORD || '');
+
+  if (!configuredUsername || (!configuredHash && !configuredPassword)) {
+    return res.status(503).json({ msg: 'Admin login is not configured on the server.' });
+  }
+
+  if (username !== configuredUsername) {
+    return res.status(401).json({ msg: 'Invalid admin credentials.' });
+  }
+
+  let validPassword = false;
+
+  if (configuredHash) {
+    validPassword = await bcrypt.compare(password, configuredHash);
+  } else {
+    const supplied = Buffer.from(password);
+    const expected = Buffer.from(configuredPassword);
+    validPassword = supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+  }
+
+  if (!validPassword) {
+    return res.status(401).json({ msg: 'Invalid admin credentials.' });
+  }
+
+  const payload = {
+    user: {
+      id: 'admin',
+      isAdmin: true,
+      role: 'admin',
+      name: process.env.ADMIN_NAME || 'Just Helps Admin'
+    }
+  };
+
+  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' }, (err, token) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ msg: 'Unable to create admin session.' });
+    }
+    res.json({ token, isAdmin: true, name: payload.user.name });
+  });
+});
+
 const passwordLoginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
