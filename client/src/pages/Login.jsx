@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 import API_URL from '../api';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [useOtp, setUseOtp] = useState(false);
@@ -16,7 +17,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleSendOtp = async () => {
-    if (!formData.email.trim()) return setError("Please enter your email first.");
+    if (!formData.email.trim()) {
+      setError('Enter your email first.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -27,171 +31,89 @@ export default function Login() {
         type: 'LOGIN'
       });
       setOtpSent(true);
-      alert("OTP sent to your email!");
     } catch (err) {
-      setError(err.response?.data?.msg || "Failed to send OTP.");
+      setError(err.response?.data?.msg || 'Failed to send OTP.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       const email = formData.email.trim().toLowerCase();
-      let res;
-
-      if (useOtp) {
-        res = await axios.post(`${API_URL}/api/auth/login-with-otp`, {
-          email,
-          otp: formData.otp.trim()
-        });
-      } else {
-        res = await axios.post(`${API_URL}/api/auth/login`, {
-          email,
-          password: formData.password
-        });
-      }
+      const res = useOtp
+        ? await axios.post(`${API_URL}/api/auth/login-with-otp`, { email, otp: formData.otp.trim() })
+        : await axios.post(`${API_URL}/api/auth/login`, { email, password: formData.password });
 
       login(res.data.token, Boolean(res.data.isAdmin));
-
-      if (res.data.isAdmin) {
-        alert("Welcome Admin!");
-        navigate('/admin', { replace: true });
-      } else {
-        alert("Welcome back!");
-        navigate('/dashboard', { replace: true });
-      }
+      navigate(res.data.isAdmin ? '/admin' : (location.state?.from || '/dashboard'), { replace: true });
     } catch (err) {
-      setError(err.response?.data?.msg || 'Login failed. Check server connection.');
+      setError(err.response?.data?.msg || 'Login failed. Check your details and try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: 'calc(100vh - 75px)', background: '#F9FAFB' }}>
-      <div className="login-image-panel" style={{
-        flex: 1,
-        backgroundImage: 'url("https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=1000")',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative'
-      }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)' }}></div>
-        <div style={{ position: 'absolute', bottom: '60px', left: '60px', color: 'white' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>Your kindness<br/>saves lives.</h2>
+    <main className="auth-split-page">
+      <section className="login-image-panel" aria-hidden="true">
+        <div className="login-image-overlay" />
+        <div className="login-image-copy">
+          <span className="eyebrow">JUST HELPS</span>
+          <h1>Bring a real need to the people who can help.</h1>
         </div>
-      </div>
+      </section>
 
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px', background: 'white' }}>
-        <div style={{ width: '100%', maxWidth: '400px' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '10px', color: '#1F2937' }}>Fundraiser Login</h1>
-          <p style={{ color: '#6B7280', marginBottom: '30px' }}>Manage your campaigns and track donations.</p>
+      <section className="auth-panel">
+        <div className="auth-card">
+          <span className="eyebrow">FUNDRAISER ACCESS</span>
+          <h2>Welcome back</h2>
+          <p className="auth-muted">Manage your campaigns and track their progress.</p>
 
-          {error && <div style={{ background: '#FEF2F2', color: '#B91C1C', padding: '12px', borderRadius: '8px', marginBottom: '20px' }}>⚠️ {error}</div>}
+          {location.state?.message && <div className="form-success" role="status">{location.state.message}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
 
-          <div style={{ display: 'flex', marginBottom: '25px', background: '#F3F4F6', padding: '4px', borderRadius: '8px' }}>
-            <button type="button" onClick={() => { setUseOtp(false); setOtpSent(false); setError(''); }} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: !useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: !useOtp ? '#000' : '#6B7280' }}>
-              Password Login
-            </button>
-            <button type="button" onClick={() => { setUseOtp(true); setOtpSent(false); setError(''); }} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '6px', background: useOtp ? 'white' : 'transparent', fontWeight: '600', cursor: 'pointer', color: useOtp ? '#000' : '#6B7280' }}>
-              OTP Login
-            </button>
+          <div className="auth-mode-switch" role="tablist" aria-label="Login method">
+            <button type="button" role="tab" aria-selected={!useOtp} className={!useOtp ? 'active' : ''} onClick={() => { setUseOtp(false); setOtpSent(false); setError(''); }}>Password</button>
+            <button type="button" role="tab" aria-selected={useOtp} className={useOtp ? 'active' : ''} onClick={() => { setUseOtp(true); setOtpSent(false); setError(''); }}>Email OTP</button>
           </div>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Email Address</label>
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                style={inputStyle}
-              />
-            </div>
+            <label className="auth-field">
+              Email address
+              <input className="form-input" type="email" autoComplete="email" required placeholder="name@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+            </label>
 
             {!useOtp && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <label style={{ fontWeight: '600' }}>Password</label>
-                  <Link to="/forgot-password" style={{ color: '#D97706', fontSize: '0.85rem', textDecoration: 'none' }}>Forgot?</Link>
-                </div>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={e => setFormData({ ...formData, password: e.target.value })}
-                  style={inputStyle}
-                />
-              </div>
+              <label className="auth-field">
+                <span className="field-label-row"><span>Password</span><Link to="/forgot-password">Forgot password?</Link></span>
+                <input className="form-input" type="password" autoComplete="current-password" required placeholder="Your password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
+              </label>
             )}
 
-            {useOtp && (
-              <div className="fade-in" style={{ marginBottom: '20px' }}>
-                {!otpSent ? (
-                  <button type="button" onClick={handleSendOtp} disabled={loading} style={{ ...btnStyle, background: '#4B5563' }}>
-                    {loading ? 'Sending...' : 'Send Login OTP'}
-                  </button>
-                ) : (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Enter OTP</label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      required
-                      placeholder="XXXX"
-                      maxLength="4"
-                      value={formData.otp}
-                      onChange={e => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
-                      style={{ ...inputStyle, letterSpacing: '5px', textAlign: 'center', fontSize: '1.2rem' }}
-                    />
-                  </div>
-                )}
-              </div>
+            {useOtp && !otpSent && (
+              <button type="button" onClick={handleSendOtp} disabled={loading} className="secondary-button full auth-secondary-action">{loading ? 'Sending…' : 'Send login OTP'}</button>
             )}
 
-            {(!useOtp || (useOtp && otpSent)) && (
-              <button disabled={loading} type="submit" style={btnStyle}>
-                {loading ? 'Verifying...' : 'Secure Login'}
-              </button>
+            {useOtp && otpSent && (
+              <label className="auth-field">
+                4-digit OTP
+                <input className="form-input otp-input" type="text" inputMode="numeric" autoComplete="one-time-code" required maxLength="4" value={formData.otp} onChange={e => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })} />
+              </label>
+            )}
+
+            {(!useOtp || otpSent) && (
+              <button disabled={loading} type="submit" className="primary-button full">{loading ? 'Signing in…' : 'Sign in'}</button>
             )}
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: '25px', color: '#6B7280' }}>
-            New here? <Link to="/register" style={{ color: '#D97706', fontWeight: 'bold', textDecoration: 'none' }}>Create Account</Link>
-          </p>
+          <p className="auth-footer-copy">Need an account? <Link to="/register">Start a fundraiser</Link></p>
         </div>
-      </div>
-
-      <style>{`@media (max-width: 900px) { .login-image-panel { display: none !important; } }`}</style>
-    </div>
+      </section>
+    </main>
   );
 }
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px',
-  borderRadius: '8px',
-  border: '1px solid #D1D5DB',
-  fontSize: '1rem'
-};
-
-const btnStyle = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: '8px',
-  border: 'none',
-  background: '#D97706',
-  color: 'white',
-  fontWeight: 'bold',
-  fontSize: '1rem',
-  cursor: 'pointer'
-};
