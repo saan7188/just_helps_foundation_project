@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import IntentCard from '../components/IntentCard';
-
-// ✅ 1. Define Server URL centrally (Guarantees connection to Render)
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 // 2. Accept 'config' prop from App.jsx (God Mode)
 export default function Home({ config }) {
@@ -75,7 +73,7 @@ export default function Home({ config }) {
             <div style={{ color: '#DC2626', fontWeight: 'bold', fontSize: '0.8rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: '8px', height: '8px', background: '#DC2626', borderRadius: '50%' }}></span>URGENT DEADLINE
             </div>
-            <img src={urgentCampaign.image} alt={urgentCampaign.title} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '8px', marginBottom: '15px' }} />
+            <img src={urgentCampaign.image?.startsWith('http') ? urgentCampaign.image : `${API_URL}${urgentCampaign.image || ''}`} alt={urgentCampaign.title} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '8px', marginBottom: '15px' }} />
             <h3 style={{ fontSize: '1.4rem', margin: '0 0 8px 0', lineHeight: 1.2, color: '#1F2937' }}>{urgentCampaign.title}</h3>
             <div style={{ background: '#FEF2F2', color: '#B91C1C', padding: '8px 12px', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '20px', display: 'inline-block', fontWeight: 'bold' }}>
                ⏱ Ending: {new Date(urgentCampaign.deadline).toLocaleDateString()}
@@ -127,7 +125,7 @@ export default function Home({ config }) {
             return (
               <div key={cause._id} className="glass-card" style={{ padding: '15px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ position: 'relative' }}>
-                  <img src={cause.image} alt={cause.title} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px' }} />
+                  <img src={cause.image?.startsWith('http') ? cause.image : `${API_URL}${cause.image || ''}`} alt={cause.title} style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '10px' }} />
                   <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
                     {daysLeft > 0 ? `⏳ ${daysLeft} Days Left` : '⚠️ Ending Soon'}
                   </div>
