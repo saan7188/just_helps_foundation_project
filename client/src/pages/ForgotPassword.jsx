@@ -1,55 +1,59 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-
-// ✅ 1. Define Server URL centrally
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
+    setLoading(true);
+    setMsg('');
+    setError('');
+
     try {
-      // ✅ Use API_URL here
-      await axios.post(`${API_URL}/api/auth/forgotpassword`, { email });
-      setMsg('✅ Check your email for the reset link.');
-      setError('');
+      await axios.post(`${API_URL}/api/auth/forgotpassword`, { email: email.trim().toLowerCase() });
+      setMsg('Check your email for the reset link.');
     } catch (err) {
-      console.error("Forgot Password Error:", err);
-      setError('❌ ' + (err.response?.data?.msg || 'Error sending email. Try again.'));
-      setMsg('');
+      setError(err.response?.data?.msg || 'Unable to send the reset link. Try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container" style={{ maxWidth: '400px', marginTop: '80px' }}>
-      <div className="cause-card" style={{ padding: '30px', textAlign: 'center', background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <h2 style={{ marginBottom: '10px', color: '#1F2937' }}>Reset Password</h2>
-        <p style={{ color: '#6B7280', marginBottom: '20px', fontSize: '0.9rem' }}>
-          Enter your email to receive a secure link.
-        </p>
+    <div className="container section auth-simple-page">
+      <div className="auth-simple-card">
+        <span className="eyebrow">ACCOUNT RECOVERY</span>
+        <h1>Reset your password</h1>
+        <p>Enter your email to receive a secure password-reset link.</p>
 
-        {msg && <div style={{ color: '#065F46', marginBottom: '15px', background: '#D1FAE5', padding: '10px', borderRadius: '6px', fontSize: '0.9rem' }}>{msg}</div>}
-        {error && <div style={{ color: '#991B1B', marginBottom: '15px', background: '#FEE2E2', padding: '10px', borderRadius: '6px', fontSize: '0.9rem' }}>{error}</div>}
+        {msg && <div className="form-success" role="status">{msg}</div>}
+        {error && <div className="form-error" role="alert">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <input 
-            type="email" 
-            required
-            placeholder="Enter your email" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: '12px', marginBottom: '20px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '1rem' }} 
-          />
-          <button className="btn" style={{ width: '100%', padding: '12px', background: '#2563EB', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Send Link</button>
+          <label className="auth-field">
+            Email address
+            <input
+              className="form-input"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="name@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </label>
+          <button className="primary-button full" disabled={loading}>
+            {loading ? 'Sending…' : 'Send reset link'}
+          </button>
         </form>
 
-        <Link to="/login" style={{ display: 'block', marginTop: '20px', color: '#6B7280', fontSize: '0.9rem', textDecoration: 'none' }}>
-          ← Back to Login
-        </Link>
+        <Link to="/login" className="auth-back-link">← Back to login</Link>
       </div>
     </div>
   );
