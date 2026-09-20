@@ -98,7 +98,7 @@ export default function Donate() {
       setTimeout(() => {
         setPaymentStep('SUCCESS');
         setTimeout(() => {
-          alert(`✅ Payment Successful!\nTransaction ID: ${res.data.transactionId || 'TXN_SUCCESS'}`);
+          alert(`✅ Demo donation recorded!\nTransaction ID: ${res.data.transactionId || 'TXN_DEMO'}`);
           navigate('/'); // Redirect to Home to see updated progress
         }, 2500);
       }, 2000);
@@ -132,7 +132,7 @@ export default function Donate() {
         <input type="text" placeholder="MM/YY" style={modalInputStyle} maxLength="5" />
         <input type="password" placeholder="CVV" style={modalInputStyle} maxLength="3" />
       </div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Pay ₹{totalAmount}</button>
+      <button onClick={handleFinalPayment} style={payBtnStyle}>Record Demo Donation ₹{totalAmount}</button>
     </div>
   );
 
@@ -144,7 +144,7 @@ export default function Donate() {
         <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=justhelps@upi&am=${totalAmount}`} alt="QR" />
       </div>
       <div style={{fontSize: '0.9rem', fontWeight: 'bold'}}>Total: ₹{totalAmount}</div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Simulate Success</button>
+      <button onClick={handleFinalPayment} style={payBtnStyle}>Record Demo Donation</button>
     </div>
   );
 
@@ -236,7 +236,7 @@ export default function Donate() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '400px', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', fontFamily: 'system-ui' }}>
             <div style={{ background: '#1A1F36', padding: '20px', color: 'white', position: 'relative' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Just Helps Foundation</div>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Just Helps Foundation</div><div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>Portfolio Demo Payment</div>
               <div style={{ position:'absolute', right:'20px', top:'20px', fontSize:'1.2rem', fontWeight:'bold' }}>₹{totalAmount}</div>
               <button onClick={handleCancel} style={{ position: 'absolute', top: '5px', right: '10px', background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
