@@ -63,7 +63,7 @@ export default function Login() {
         navigate('/admin', { replace: true });
       } else {
         alert("Welcome back!");
-        navigate('/create', { replace: true });
+        navigate('/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed. Check server connection.');
