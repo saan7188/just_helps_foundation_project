@@ -76,7 +76,6 @@ export default function Campaign() {
       <div className="verification-card">
         <strong>What verified means</strong>
         <p>The campaign creator submitted information and supporting documents for review. Just Helps reviews the submitted information before a campaign is published.</p>
-        {cause.verificationNote && <p className="verification-note-detail"><strong>Review note:</strong> {cause.verificationNote}</p>}
       </div>
     </div>
   );
