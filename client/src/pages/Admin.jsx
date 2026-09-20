@@ -86,17 +86,19 @@ export default function Admin() {
     setSaving(true);
 
     try {
+      const data = new FormData();
+      data.append('title', editing.title.trim());
+      data.append('subtitle', editing.subtitle.trim());
+      data.append('description', editing.description.trim());
+      data.append('category', editing.category.trim() || 'General');
+      data.append('target', String(Number(editing.target)));
+      data.append('deadline', editing.deadline);
+      if (editing.imageFile) data.append('image', editing.imageFile);
+
       await axios.put(
         `${API_URL}/api/causes/${editing._id}`,
-        {
-          title: editing.title,
-          subtitle: editing.subtitle,
-          description: editing.description,
-          category: editing.category,
-          target: Number(editing.target),
-          deadline: editing.deadline
-        },
-        tokenConfig()
+        data,
+        { headers: { 'x-auth-token': localStorage.getItem('token') } }
       );
 
       setEditing(null);
@@ -138,9 +140,16 @@ export default function Admin() {
           <span className="admin-badge">Private admin</span>
         </div>
 
-        <div className="admin-tabs">
+        <div className="admin-tabs" role="tablist" aria-label="Admin sections">
           {['overview', 'requests', 'campaigns', 'transactions', 'settings'].map(item => (
-            <button key={item} className={tab === item ? 'admin-tab active' : 'admin-tab'} onClick={() => setTab(item)}>
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={tab === item}
+              className={tab === item ? 'admin-tab active' : 'admin-tab'}
+              onClick={() => setTab(item)}
+            >
               {item}
             </button>
           ))}
@@ -203,7 +212,11 @@ export default function Admin() {
                   key={cause._id}
                   cause={cause}
                   published
-                  onUpdate={() => setEditing({ ...cause, deadline: cause.deadline ? new Date(cause.deadline).toISOString().slice(0, 10) : '' })}
+                  onUpdate={() => setEditing({
+                    ...cause,
+                    deadline: cause.deadline ? new Date(cause.deadline).toISOString().slice(0, 10) : '',
+                    imageFile: null
+                  })}
                   onRemove={() => removeFromPublic(cause)}
                   disabled={saving}
                 />
@@ -250,11 +263,11 @@ export default function Admin() {
       </div>
 
       {selected && (
-        <div className="modal-backdrop">
-          <div className="review-modal">
-            <button className="modal-close" onClick={() => setSelected(null)}>×</button>
+        <div className="modal-backdrop" role="presentation">
+          <div className="review-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-review-title">
+            <button type="button" className="modal-close" aria-label="Close campaign review" onClick={() => setSelected(null)}>×</button>
             <span className="eyebrow">CAMPAIGN REVIEW</span>
-            <h2>{selected.title}</h2>
+            <h2 id="campaign-review-title">{selected.title}</h2>
             <p>{selected.description}</p>
             <div className="review-facts">
               <span>Category: {selected.category}</span>
@@ -265,32 +278,41 @@ export default function Admin() {
             <h3>Verification documents</h3>
             <div className="proof-list">
               {(selected.proofFiles || []).map((file, index) => (
-                <a key={file} href={file.startsWith('http') ? file : `${API_URL}${file}`} target="_blank" rel="noreferrer">Proof document {index + 1} ↗</a>
+                <a
+                  key={file}
+                  href={`${API_URL}/api/causes/${selected._id}/proof/${index}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Proof document {index + 1} ↗
+                </a>
               ))}
+              {!selected.proofFiles?.length && <span className="muted-note">No proof documents attached.</span>}
             </div>
             <label>Review note<textarea className="form-input" rows="3" value={note} onChange={e => setNote(e.target.value)} placeholder="Required when asking for more information or rejecting." /></label>
             <div className="review-actions">
-              <button className="approve-button" disabled={saving} onClick={() => review(selected, 'approved')}>Approve & publish</button>
-              <button className="more-button" disabled={saving} onClick={() => review(selected, 'more_info')}>Request more info</button>
-              <button className="reject-button" disabled={saving} onClick={() => review(selected, 'rejected')}>Reject</button>
+              <button type="button" className="approve-button" disabled={saving} onClick={() => review(selected, 'approved')}>Approve & publish</button>
+              <button type="button" className="more-button" disabled={saving} onClick={() => review(selected, 'more_info')}>Request more info</button>
+              <button type="button" className="reject-button" disabled={saving} onClick={() => review(selected, 'rejected')}>Reject</button>
             </div>
           </div>
         </div>
       )}
 
       {editing && (
-        <div className="modal-backdrop">
-          <form className="review-modal edit-campaign-modal" onSubmit={updateCampaign}>
-            <button type="button" className="modal-close" onClick={() => setEditing(null)}>×</button>
+        <div className="modal-backdrop" role="presentation">
+          <form className="review-modal edit-campaign-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-edit-title" onSubmit={updateCampaign}>
+            <button type="button" className="modal-close" aria-label="Close campaign editor" onClick={() => setEditing(null)}>×</button>
             <span className="eyebrow">PUBLISHED CAMPAIGN</span>
-            <h2>Update campaign</h2>
-            <p>Changes apply to the published campaign after you save.</p>
+            <h2 id="campaign-edit-title">Update campaign</h2>
+            <p>Text, goal, deadline and the campaign image can be updated while the campaign remains published.</p>
 
             <label>Title<input className="form-input" value={editing.title || ''} onChange={e => setEditing({ ...editing, title: e.target.value })} required /></label>
             <label>Subtitle<input className="form-input" value={editing.subtitle || ''} onChange={e => setEditing({ ...editing, subtitle: e.target.value })} required /></label>
             <label>Category<input className="form-input" value={editing.category || ''} onChange={e => setEditing({ ...editing, category: e.target.value })} /></label>
             <label>Goal amount<input className="form-input" type="number" min="1" value={editing.target || ''} onChange={e => setEditing({ ...editing, target: e.target.value })} required /></label>
             <label>Deadline<input className="form-input" type="date" value={editing.deadline || ''} onChange={e => setEditing({ ...editing, deadline: e.target.value })} required /></label>
+            <label>Campaign image<input className="form-input" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setEditing({ ...editing, imageFile: e.target.files?.[0] || null })} /><small className="field-help">Optional replacement · JPG, PNG or WebP · up to 10 MB</small></label>
             <label>Story<textarea className="form-input" rows="7" value={editing.description || ''} onChange={e => setEditing({ ...editing, description: e.target.value })} required /></label>
 
             <div className="review-actions">
@@ -322,13 +344,13 @@ function CampaignRow({ cause, actionLabel, onAction, published, onUpdate, onRemo
 
       {published ? (
         <div className="admin-row-actions">
-          <button className="secondary-button" onClick={onUpdate} disabled={disabled}>Update</button>
-          <button className="danger-outline-button" onClick={onRemove} disabled={disabled}>Remove</button>
+          <button type="button" className="secondary-button" onClick={onUpdate} disabled={disabled}>Update</button>
+          <button type="button" className="danger-outline-button" onClick={onRemove} disabled={disabled}>Remove</button>
         </div>
       ) : (
         <div className="admin-row-meta">
           <strong>₹{Number(cause.target || 0).toLocaleString()} goal</strong>
-          <button className="secondary-button" onClick={onAction}>Review</button>
+          <button type="button" className="secondary-button" onClick={onAction}>{actionLabel || 'Review'}</button>
         </div>
       )}
     </article>
