@@ -31,7 +31,7 @@ export default function Donate() {
   const [tipPercentage, setTipPercentage] = useState(0); 
   
   // UI STATES
-  const [showRazorpay, setShowRazorpay] = useState(false);
+  const [showPaymentDemo, setShowPaymentDemo] = useState(false);
   const [paymentStep, setPaymentStep] = useState('OPTIONS'); 
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function Donate() {
     e.preventDefault();
     if (!baseAmount) return alert("Please select or enter an amount.");
     if (!donorName || !donorEmail) return alert("Please fill in your Name and Email.");
-    setShowRazorpay(true);
+    setShowPaymentDemo(true);
     setPaymentStep('OPTIONS');
   };
 
@@ -74,7 +74,7 @@ export default function Donate() {
             // ✅ Use API_URL
             await axios.post(`${API_URL}/api/payment/cancel`, { donorName, donorEmail }); 
         } catch(err) {}
-        setShowRazorpay(false);
+        setShowPaymentDemo(false);
     }
   };
 
@@ -106,15 +106,19 @@ export default function Donate() {
     } catch (err) {
       console.error(err);
       alert("Payment Failed. Please try again.");
-      setShowRazorpay(false);
+      setShowPaymentDemo(false);
     }
   };
 
-  // --- RENDER HELPERS (Modals) ---
+  // --- RENDER HELPERS (Demo payment modal) ---
   const renderOptions = () => (
     <>
-      <p style={subHeaderStyle}>Select Payment Method</p>
-      {['💳 Credit / Debit Card', '📱 UPI / QR Code', '🏦 Netbanking'].map((m, i) => (
+      <div style={demoNoticeStyle}>
+        <strong>Demo payment only</strong>
+        <div>No real money, card details, UPI credentials, or bank details are processed.</div>
+      </div>
+      <p style={subHeaderStyle}>Choose a simulated payment method</p>
+      {['💳 Demo Card', '📱 Demo UPI', '🏦 Demo Netbanking'].map((m, i) => (
           <div key={i} onClick={() => setPaymentStep(m.includes('Card') ? 'CARD' : 'UPI')} style={methodStyle}>
             <span>{m}</span> <span style={{ color: '#2B83EA' }}>&gt;</span>
           </div>
@@ -126,25 +130,23 @@ export default function Donate() {
   const renderCard = () => (
     <div>
       <div onClick={() => setPaymentStep('OPTIONS')} style={backBtnStyle}>&lt; Back</div>
-      <p style={subHeaderStyle}>Enter Card Details</p>
-      <input type="text" placeholder="0000 0000 0000 0000" style={modalInputStyle} maxLength="16" />
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <input type="text" placeholder="MM/YY" style={modalInputStyle} maxLength="5" />
-        <input type="password" placeholder="CVV" style={modalInputStyle} maxLength="3" />
+      <p style={subHeaderStyle}>Demo Card</p>
+      <div style={demoNoticeStyle}>Use this screen to demonstrate the payment flow. Do not enter real card information.</div>
+      <div style={demoCardStyle}>
+        <div>•••• •••• •••• 0000</div>
+        <div style={{fontSize:'0.8rem', marginTop:'8px'}}>Demo payment method</div>
       </div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Record Demo Donation ₹{totalAmount}</button>
+      <button onClick={handleFinalPayment} style={payBtnStyle}>Simulate Donation ₹{totalAmount}</button>
     </div>
   );
 
   const renderUPI = () => (
     <div style={{ textAlign: 'center' }}>
       <div onClick={() => setPaymentStep('OPTIONS')} style={backBtnStyle}>&lt; Back</div>
-      <p style={subHeaderStyle}>Scan QR Code</p>
-      <div style={{ background: 'white', padding: '10px', display: 'inline-block', border: '1px solid #ddd', borderRadius: '8px', marginBottom: '15px' }}>
-        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=upi://pay?pa=justhelps@upi&am=${totalAmount}`} alt="QR" />
-      </div>
-      <div style={{fontSize: '0.9rem', fontWeight: 'bold'}}>Total: ₹{totalAmount}</div>
-      <button onClick={handleFinalPayment} style={payBtnStyle}>Record Demo Donation</button>
+      <p style={subHeaderStyle}>Demo UPI</p>
+      <div style={demoNoticeStyle}>No real UPI ID or QR payment is used in this portfolio demo.</div>
+      <div style={demoUpiStyle}>UPI payment simulation<br/><strong>₹{totalAmount}</strong></div>
+      <button onClick={handleFinalPayment} style={payBtnStyle}>Simulate Donation</button>
     </div>
   );
 
@@ -226,17 +228,17 @@ export default function Donate() {
                 Donate ₹{totalAmount} Now
             </button>
             <div style={{textAlign: 'center', marginTop: '10px', fontSize: '0.8rem', color: '#6B7280'}}>
-                🛡️ SSL Encrypted & Secure
+                🛡️ Portfolio demo • No real payment processed
             </div>
         </div>
       </div>
 
-      {/* RAZORPAY MODAL */}
-      {showRazorpay && (
+      {/* DEMO PAYMENT MODAL */}
+      {showPaymentDemo && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '400px', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.5)', fontFamily: 'system-ui' }}>
             <div style={{ background: '#1A1F36', padding: '20px', color: 'white', position: 'relative' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Just Helps Foundation</div><div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>Portfolio Demo Payment</div>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Just Helps Foundation</div><div style={{ fontSize: '0.72rem', opacity: 0.75, marginTop: 4 }}>Simulated Payment — No Real Money</div>
               <div style={{ position:'absolute', right:'20px', top:'20px', fontSize:'1.2rem', fontWeight:'bold' }}>₹{totalAmount}</div>
               <button onClick={handleCancel} style={{ position: 'absolute', top: '5px', right: '10px', background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
@@ -244,8 +246,8 @@ export default function Donate() {
               {paymentStep === 'OPTIONS' && renderOptions()}
               {paymentStep === 'CARD' && renderCard()}
               {(paymentStep === 'UPI' || paymentStep === 'NETBANKING') && renderUPI()}
-              {paymentStep === 'PROCESSING' && <div style={{textAlign:'center', paddingTop:'80px'}}><b>Processing Securely...</b></div>}
-              {paymentStep === 'SUCCESS' && <div style={{textAlign:'center', paddingTop:'80px', color:'#10B981'}}><h1>✓</h1><h3>Payment Successful</h3></div>}
+              {paymentStep === 'PROCESSING' && <div style={{textAlign:'center', paddingTop:'80px'}}><b>Recording Demo Donation...</b><p style={{color:'#6B7280',fontSize:'0.85rem'}}>No real payment is being processed.</p></div>}
+              {paymentStep === 'SUCCESS' && <div style={{textAlign:'center', paddingTop:'80px', color:'#10B981'}}><h1>✓</h1><h3>Demo Donation Recorded</h3><p style={{color:'#6B7280'}}>No real payment was processed.</p></div>}
             </div>
           </div>
         </div>
@@ -259,6 +261,9 @@ const sectionTitle = { fontSize: '1.2rem', color: '#374151', marginBottom: '15px
 const inputStyle = { width: '100%', padding: '14px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '1rem', background: '#fff' };
 const modalInputStyle = { width: '100%', padding: '12px', borderRadius: '4px', border: '1px solid #D1D5DB', marginBottom: '15px', fontSize: '0.95rem' };
 const subHeaderStyle = { fontSize: '0.85rem', color: '#6B7280', marginBottom: '15px', fontWeight: 'bold', textTransform: 'uppercase' };
+const demoNoticeStyle = { background:'#FFF7ED', border:'1px solid #FED7AA', color:'#9A3412', padding:'12px', borderRadius:'8px', fontSize:'0.82rem', lineHeight:1.4, marginBottom:'15px' };
+const demoCardStyle = { background:'linear-gradient(135deg,#374151,#111827)', color:'white', borderRadius:'12px', padding:'20px', margin:'15px 0', fontFamily:'monospace', fontSize:'1.1rem', letterSpacing:'2px' };
+const demoUpiStyle = { background:'white', border:'1px dashed #9CA3AF', borderRadius:'10px', padding:'30px 15px', margin:'15px 0', color:'#374151', lineHeight:1.8 };
 const methodStyle = { background: 'white', padding: '15px', borderRadius: '6px', marginBottom: '10px', border: '1px solid #E5E7EB', cursor: 'pointer', display: 'flex', justifyContent: 'space-between' };
 const payBtnStyle = { width: '100%', padding: '14px', background: '#2B83EA', color: 'white', border: 'none', borderRadius: '4px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' };
 const backBtnStyle = { fontSize: '0.85rem', color: '#2B83EA', cursor: 'pointer', marginBottom: '15px', fontWeight: '600', display: 'inline-block' };
