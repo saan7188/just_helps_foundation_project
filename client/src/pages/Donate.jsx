@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-// ✅ 1. Define Server URL centrally
-const API_URL = "https://justhelpsserver.onrender.com";
+import API_URL from '../api';
 
 export default function Donate() {
   const { id } = useParams();
