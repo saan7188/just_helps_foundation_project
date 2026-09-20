@@ -40,15 +40,19 @@ router.post('/donate', async (req, res) => {
   const tipAmount = Number(tip);
   const totalPaid = donationAmount + tipAmount;
 
-  if (!donorName?.trim() || !donorEmail?.trim()) {
-    return res.status(400).json({ msg: 'Name and email are required' });
+  const normalizedEmail = String(donorEmail || '').trim().toLowerCase();
+  const normalizedName = String(donorName || '').trim();
+  const normalizedDedication = String(dedication || '').trim();
+
+  if (!normalizedName || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+    return res.status(400).json({ msg: 'Enter a valid name and email' });
   }
 
-  if (!Number.isFinite(donationAmount) || donationAmount < 1) {
+  if (!Number.isFinite(donationAmount) || donationAmount < 1 || donationAmount > 1000000) {
     return res.status(400).json({ msg: 'Donation amount must be at least ₹1' });
   }
 
-  if (!Number.isFinite(tipAmount) || tipAmount < 0) {
+  if (!Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 100000) {
     return res.status(400).json({ msg: 'Invalid tip amount' });
   }
 
@@ -69,15 +73,15 @@ router.post('/donate', async (req, res) => {
     const transactionId = createTransactionId();
 
     const donation = await Donation.create({
-      donorName: donorName.trim(),
-      donorEmail: donorEmail.trim().toLowerCase(),
+      donorName: normalizedName,
+      donorEmail: normalizedEmail,
       amount: donationAmount,
       tipAmount,
       totalPaid,
       cause: cause ? String(cause._id) : 'general',
       causeTitle: cause?.title || causeTitle || 'General Donation',
       isAnonymous: Boolean(isAnonymous),
-      dedication: dedication.trim(),
+      dedication: normalizedDedication.slice(0, 500),
       transactionId
     });
 
@@ -93,7 +97,7 @@ router.post('/donate', async (req, res) => {
     const receiptHtml = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
         <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
-        <p>Thank you, ${donorName.trim()}.</p>
+        <p>Thank you, ${normalizedName}.</p>
         <p>This portfolio project records simulated donations for demonstration purposes.</p>
         <hr>
         <p><strong>Campaign:</strong> ${cause?.title || causeTitle || 'General Donation'}</p>
