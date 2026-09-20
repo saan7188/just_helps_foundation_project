@@ -1,247 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
-
 import API_URL from '../api';
 
-const Admin = () => {
-  const [activeTab, setActiveTab] = useState('stats');
+const tokenConfig = () => ({ headers: { 'x-auth-token': localStorage.getItem('token') } });
+
+export default function Admin() {
+  const [tab, setTab] = useState('overview');
   const [causes, setCauses] = useState([]);
-  const [siteConfig, setSiteConfig] = useState({
-    heroTitle: '',
-    heroSubtitle: '',
-    maintenanceMode: false,
-    announcement: ''
-  });
+  const [donations, setDonations] = useState([]);
+  const [site, setSite] = useState({ heroTitle:'', heroSubtitle:'', maintenanceMode:false, announcement:'' });
+  const [selected, setSelected] = useState(null);
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Edit Modal State
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [newImage, setNewImage] = useState(null);
-
-  const token = localStorage.getItem('token');
-  const config = { headers: { 'x-auth-token': token } };
-
-  useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchData = async () => {
+  const load = async () => {
     try {
-      const [causeRes, siteRes] = await Promise.all([
-        axios.get(`${API_URL}/api/causes/admin/all`, config),
+      const [c, d, s] = await Promise.all([
+        axios.get(`${API_URL}/api/causes/admin/all`, tokenConfig()),
+        axios.get(`${API_URL}/api/payment/all`, tokenConfig()),
         axios.get(`${API_URL}/api/site`)
       ]);
-      setCauses(causeRes.data);
-      setSiteConfig(siteRes.data);
-      setLoading(false);
+      setCauses(c.data || []);
+      setDonations(d.data || []);
+      setSite(s.data || site);
     } catch (err) {
-      console.error("Admin Fetch Error", err);
-      setLoading(false);
-    }
+      console.error(err);
+    } finally { setLoading(false); }
   };
 
-  // --- ACTIONS ---
+  useEffect(() => { load(); }, []);
 
-  const handleUpdateSite = async (e) => {
+  const review = async (cause, status) => {
+    try {
+      await axios.put(`${API_URL}/api/causes/${cause._id}`, {
+        status,
+        isVerified: status === 'approved',
+        verificationNote: note.trim()
+      }, tokenConfig());
+      setSelected(null); setNote(''); await load();
+    } catch (err) { alert(err.response?.data?.msg || 'Unable to update campaign'); }
+  };
+
+  const saveSite = async e => {
     e.preventDefault();
-    try {
-      await axios.put(`${API_URL}/api/site`, siteConfig, config);
-      alert("Global Settings Updated! ⚙️");
-    } catch (err) { alert("Settings update failed"); }
+    await axios.put(`${API_URL}/api/site`, site, tokenConfig());
+    alert('Site settings updated.');
   };
 
-  const handleVerify = async (id, status) => {
-    try {
-      await axios.put(`${API_URL}/api/causes/${id}`, { isVerified: status }, config);
-      fetchData();
-    } catch (err) { alert("Verification failed"); }
-  };
+  const pending = causes.filter(c => ['pending','more_info'].includes(c.status || (!c.isVerified ? 'pending' : 'approved')));
+  const active = causes.filter(c => c.status === 'approved' || (!c.status && c.isVerified));
+  const total = donations.filter(d => d.paymentStatus !== 'cancelled').reduce((sum, d) => sum + Number(d.totalPaid || 0), 0);
 
-  const openEdit = (item) => {
-    setEditingItem({ ...item });
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    const data = new FormData();
-    data.append('title', editingItem.title);
-    data.append('subtitle', editingItem.subtitle);
-    data.append('category', editingItem.category);
-    if (newImage) data.append('image', newImage);
-
-    if (!editingItem.title?.trim() || !editingItem.subtitle?.trim()) {
-      alert("Title and subtitle are required");
-      return;
-    }
-
-    try {
-      await axios.put(`${API_URL}/api/causes/${editingItem._id}`, data, {
-        headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
-      });
-      setIsEditModalOpen(false);
-      setNewImage(null);
-      fetchData();
-    } catch (err) { alert("Edit failed"); }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this permanently?")) return;
-    try {
-      await axios.delete(`${API_URL}/api/causes/${id}`, config);
-      fetchData();
-    } catch (err) { alert("Delete failed"); }
-  };
-
-  if (loading) return <div className="p-20 text-center text-xl">Initializing JustHelps Admin...</div>;
+  if (loading) return <div className="empty-state">Loading admin dashboard…</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="flex justify-between items-center mb-8 border-b pb-4">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <div className="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200">
-            {causes.length} Total Items
-          </div>
-        </header>
+    <div className="admin-page">
+      <div className="container section">
+        <div className="admin-header"><div><span className="eyebrow">JUST HELPS ADMIN</span><h1>Trust, campaigns and transactions.</h1></div><span className="admin-badge">Admin only</span></div>
 
-        {/* --- NAVIGATION TABS --- */}
-        <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
-          {['stats', 'global settings', 'campaigns'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-xl font-semibold capitalize transition-all duration-200 ${
-                activeTab === tab ? 'bg-gray-800 text-white shadow-lg' : 'bg-white text-gray-600 border'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <div className="admin-tabs">{['overview','requests','campaigns','transactions','settings'].map(item => <button key={item} className={tab===item?'admin-tab active':'admin-tab'} onClick={() => setTab(item)}>{item}</button>)}</div>
 
-        {/* --- STATS TAB --- */}
-        {activeTab === 'stats' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-sm">Active Fundraisers</p>
-              <h2 className="text-4xl font-bold">{causes.filter(c => c.isVerified).length}</h2>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-sm">Pending Approval</p>
-              <h2 className="text-4xl font-bold text-orange-600">{causes.filter(c => !c.isVerified).length}</h2>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <p className="text-gray-500 text-sm">Site Status</p>
-              <h2 className={`text-xl font-bold ${siteConfig.maintenanceMode ? 'text-red-600' : 'text-green-600'}`}>
-                {siteConfig.maintenanceMode ? 'Maintenance Mode Active' : 'Online'}
-              </h2>
-            </div>
-          </div>
-        )}
+        {tab === 'overview' && <div className="stats-grid">
+          <Stat label="Pending requests" value={pending.length} accent="orange" />
+          <Stat label="Live campaigns" value={active.length} accent="green" />
+          <Stat label="Successful donations" value={donations.filter(d => d.paymentStatus === 'success').length} accent="blue" />
+          <Stat label="Recorded value" value={`₹${total.toLocaleString()}`} accent="dark" />
+        </div>}
 
-        {/* --- SETTINGS TAB --- */}
-        {activeTab === 'global settings' && (
-          <div className="bg-white p-8 rounded-2xl shadow-sm border max-w-2xl">
-            <h2 className="text-xl font-bold mb-6">Home Page & System Config</h2>
-            <form onSubmit={handleUpdateSite} className="space-y-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Hero Main Title</label>
-                <input
-                  type="text"
-                  value={siteConfig.heroTitle}
-                  onChange={(e) => setSiteConfig({...siteConfig, heroTitle: e.target.value})}
-                  className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
-                />
-              </div>
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                  <p className="font-bold">Maintenance Mode</p>
-                  <p className="text-xs text-gray-500">Blocks public access to the home page</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={siteConfig.maintenanceMode}
-                  onChange={(e) => setSiteConfig({...siteConfig, maintenanceMode: e.target.checked})}
-                  className="w-6 h-6 accent-orange-600"
-                />
-              </div>
-              <button className="w-full bg-gray-800 text-white py-3 rounded-xl font-bold hover:bg-black transition">
-                Update Global Settings
-              </button>
-            </form>
-          </div>
-        )}
+        {tab === 'requests' && <section>
+          <div className="admin-section-title"><h2>Campaign requests</h2><span>{pending.length} waiting</span></div>
+          <div className="admin-list">{pending.map(cause => <CampaignRow key={cause._id} cause={cause} onReview={() => {setSelected(cause);setNote(cause.verificationNote || '')}} />)}</div>
+          {!pending.length && <div className="empty-state">No campaign requests waiting for review.</div>}
+        </section>}
 
-        {/* --- CAMPAIGNS TAB (With Edit and Verification) --- */}
-        {activeTab === 'campaigns' && (
-          <div className="space-y-4">
-            {causes.map(cause => (
-              <div key={cause._id} className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row gap-6 items-center">
-                <img 
-                  src={cause.image.startsWith('http') ? cause.image : `${API_URL}${cause.image}`} 
-                  className="w-24 h-24 object-cover rounded-xl"
-                  alt="Cause"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-bold text-lg text-gray-800">{cause.title}</h3>
-                    <span className={`px-3 py-1 text-[10px] uppercase font-bold rounded-full ${cause.isVerified ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                      {cause.isVerified ? 'Live' : 'Approval Required'}
-                    </span>
-                  </div>
-                  <p className="text-gray-500 text-sm line-clamp-1">{cause.subtitle}</p>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                  {!cause.isVerified ? (
-                    <button onClick={() => handleVerify(cause._id, true)} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex-1">Approve</button>
-                  ) : (
-                    <button onClick={() => handleVerify(cause._id, false)} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold flex-1">Disable</button>
-                  )}
-                  <button onClick={() => openEdit(cause)} className="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-sm font-bold flex-1 border border-blue-100">Edit</button>
-                  <button onClick={() => handleDelete(cause._id)} className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-sm font-bold flex-1 border border-red-100">Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {tab === 'campaigns' && <section>
+          <div className="admin-section-title"><h2>Campaign status</h2><span>{active.length} live</span></div>
+          <div className="admin-list">{causes.map(cause => <CampaignRow key={cause._id} cause={cause} onReview={() => {setSelected(cause);setNote(cause.verificationNote || '')}} />)}</div>
+        </section>}
+
+        {tab === 'transactions' && <section>
+          <div className="admin-section-title"><h2>Transactions</h2><span>{donations.length} records</span></div>
+          <div className="transaction-table"><table><thead><tr><th>Date</th><th>Transaction</th><th>Campaign</th><th>Donor</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            {donations.map(d => <tr key={d._id}><td>{new Date(d.date).toLocaleString()}</td><td>{d.transactionId}</td><td>{d.causeTitle}</td><td>{d.isAnonymous ? 'Anonymous' : d.donorEmail}</td><td>₹{Number(d.totalPaid).toLocaleString()}</td><td><span className={`status-pill ${d.paymentStatus==='success'?'status-approved':d.paymentStatus==='cancelled'?'status-pending':'status-rejected'}`}>{d.paymentStatus}</span></td></tr>)}
+          </tbody></table></div>
+        </section>}
+
+        {tab === 'settings' && <form className="form-card" onSubmit={saveSite}>
+          <h2>Site settings</h2>
+          <label>Hero title<input className="form-input" value={site.heroTitle || ''} onChange={e=>setSite({...site,heroTitle:e.target.value})} /></label>
+          <label>Hero subtitle<textarea className="form-input" rows="3" value={site.heroSubtitle || ''} onChange={e=>setSite({...site,heroSubtitle:e.target.value})} /></label>
+          <label>Announcement<textarea className="form-input" rows="3" value={site.announcement || ''} onChange={e=>setSite({...site,announcement:e.target.value})} /></label>
+          <label className="checkbox-row"><input type="checkbox" checked={Boolean(site.maintenanceMode)} onChange={e=>setSite({...site,maintenanceMode:e.target.checked})}/> Maintenance mode</label>
+          <button className="primary-button">Save settings</button>
+        </form>}
       </div>
 
-      {/* --- EDIT MODAL --- */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Edit Details</h2>
-            <form onSubmit={handleSaveEdit} className="space-y-4">
-              <input 
-                type="text" 
-                value={editingItem.title} 
-                onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
-                className="w-full p-3 border rounded-xl"
-                placeholder="Title"
-              />
-              <textarea 
-                value={editingItem.subtitle} 
-                onChange={(e) => setEditingItem({...editingItem, subtitle: e.target.value})}
-                className="w-full p-3 border rounded-xl"
-                placeholder="Subtitle"
-                rows="3"
-              />
-              <div>
-                <label className="text-xs font-bold text-gray-400 mb-1 block">Change Image</label>
-                <input type="file" onChange={(e) => setNewImage(e.target.files[0])} className="w-full text-xs" />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="submit" className="bg-orange-600 text-white flex-1 py-3 rounded-xl font-bold">Save Update</button>
-                <button type="button" onClick={() => setIsEditModalOpen(false)} className="bg-gray-100 text-gray-600 flex-1 py-3 rounded-xl font-bold">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {selected && <div className="modal-backdrop"><div className="review-modal">
+        <button className="modal-close" onClick={()=>setSelected(null)}>×</button>
+        <span className="eyebrow">CAMPAIGN REVIEW</span><h2>{selected.title}</h2>
+        <p>{selected.description}</p>
+        <div className="review-facts"><span>Category: {selected.category}</span><span>Goal: ₹{Number(selected.target).toLocaleString()}</span><span>Deadline: {selected.deadline ? new Date(selected.deadline).toLocaleDateString() : '—'}</span><span>Creator: {selected.createdBy?.email || '—'}</span></div>
+        <h3>Verification documents</h3>
+        <div className="proof-list">{(selected.proofFiles || []).map((file,i)=><a key={file} href={file.startsWith('http')?file:`${API_URL}${file}`} target="_blank" rel="noreferrer">Proof document {i+1} ↗</a>)}</div>
+        <label>Review note<textarea className="form-input" rows="3" value={note} onChange={e=>setNote(e.target.value)} placeholder="Required when asking for more information or rejecting." /></label>
+        <div className="review-actions"><button className="approve-button" onClick={()=>review(selected,'approved')}>Approve & publish</button><button className="more-button" onClick={()=>review(selected,'more_info')}>Request more info</button><button className="reject-button" onClick={()=>review(selected,'rejected')}>Reject</button></div>
+      </div></div>}
     </div>
   );
-};
+}
 
-export default Admin;
+function Stat({label,value,accent}) {
+  return <div className={`stat-card ${accent}`}><span>{label}</span><strong>{value}</strong></div>;
+}
+function CampaignRow({cause,onReview}) {
+  const status = cause.status || (cause.isVerified ? 'approved' : 'pending');
+  return <article className="admin-row"><div><span className="status-pill status-pending">{status}</span><h3>{cause.title}</h3><p>{cause.subtitle}</p></div><div className="admin-row-meta"><strong>₹{Number(cause.collected||0).toLocaleString()} / ₹{Number(cause.target||0).toLocaleString()}</strong><button className="secondary-button" onClick={onReview}>Review</button></div></article>;
+}
