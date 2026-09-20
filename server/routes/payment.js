@@ -8,9 +8,6 @@ const sendEmail = require('../utils/sendEmail');
 const auth = require('../middleware/authMiddleware');
 const admin = require('../middleware/adminMiddleware');
 
-// This project intentionally uses a free demo payment flow.
-// No real card/UPI details are collected or stored.
-
 const createTransactionId = () =>
   `JH-DEMO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
@@ -20,6 +17,16 @@ const escapeHtml = value => String(value)
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
+
+const impactByCategory = {
+  Food: 'You made someone worry a little less about their next meal.',
+  Healthcare: 'You helped someone focus on getting better instead of worrying alone.',
+  Education: 'You gave a learner one more reason to keep going.',
+  Shelter: 'You helped make someone’s day a little safer.',
+  'Girl Child': 'You helped turn a basic need into one less thing to worry about.',
+  Emergency: 'You were there when someone needed help quickly.',
+  General: 'You made someone’s day a little easier.'
+};
 
 router.get('/all', auth, admin, async (req, res) => {
   try {
@@ -88,6 +95,7 @@ router.post('/donate', async (req, res) => {
 
     const transactionId = createTransactionId();
     const category = String(cause?.category || req.body.category || 'General').trim().slice(0, 50);
+    const recordedCauseTitle = String(cause?.title || causeTitle || 'General Donation').slice(0, 200);
 
     if (cause) {
       const updatedCause = await Cause.findOneAndUpdate(
@@ -116,7 +124,7 @@ router.post('/donate', async (req, res) => {
         tipAmount,
         totalPaid,
         cause: cause ? String(cause._id) : 'general',
-        causeTitle: String(cause?.title || causeTitle || 'General Donation').slice(0, 200),
+        causeTitle: recordedCauseTitle,
         category,
         isAnonymous: Boolean(isAnonymous),
         dedication: normalizedDedication.slice(0, 500),
@@ -133,10 +141,8 @@ router.post('/donate', async (req, res) => {
     }
 
     const receiptName = escapeHtml(normalizedName);
-    const receiptCause = escapeHtml(cause?.title || causeTitle || 'General Donation');
+    const receiptCause = escapeHtml(recordedCauseTitle);
 
-    // Receipt is a demo receipt. It must not claim that a real payment
-    // processor or tax exemption was used.
     const receiptHtml = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
         <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
@@ -154,7 +160,6 @@ router.post('/donate', async (req, res) => {
       </div>
     `;
 
-    // Email failure should not undo a successfully recorded demo donation.
     try {
       await sendEmail(
         donation.donorEmail,
@@ -170,7 +175,10 @@ router.post('/donate', async (req, res) => {
       msg: 'Demo donation recorded',
       transactionId,
       paymentMode: 'demo',
-      donationId: donation._id
+      donationId: donation._id,
+      category,
+      causeTitle: recordedCauseTitle,
+      impactMessage: impactByCategory[category] || impactByCategory.General
     });
   } catch (error) {
     console.error('Donation error:', error);
