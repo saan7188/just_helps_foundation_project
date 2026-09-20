@@ -20,7 +20,7 @@ export function AdminRoute({ children }) {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/admin-login" replace />;
   }
 
   return children;
