@@ -438,3 +438,83 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .hero-actions .primary-button, .hero-actions .secondary-button { flex:1; }
   .admin-tabs { margin-left:-4px; margin-right:-4px; }
 }
+
+
+.hero-visual {
+  display:grid;
+  grid-template-columns:.92fr 1.08fr;
+  gap:70px;
+  align-items:center;
+  text-align:left;
+  min-height:620px;
+  padding-top:34px;
+  padding-bottom:34px;
+}
+.hero-visual-image {
+  position:relative;
+  min-height:500px;
+  max-height:590px;
+  border-radius:28px;
+  overflow:hidden;
+}
+.hero-visual-image img {
+  width:100%;
+  height:100%;
+  min-height:500px;
+  max-height:590px;
+  object-fit:cover;
+  display:block;
+}
+.hero-visual-image::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.28));
+  pointer-events:none;
+}
+.hero-photo-badge {
+  position:absolute;
+  z-index:2;
+  left:22px;
+  bottom:22px;
+  background:rgba(255,255,255,.94);
+  padding:13px 16px;
+  border-radius:13px;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 10px 30px rgba(0,0,0,.12);
+}
+.hero-photo-badge strong { font-size:1rem; }
+.hero-photo-badge span { color:var(--muted); font-size:.78rem; }
+.hero-visual-copy h1 {
+  max-width:700px;
+  font-size:clamp(3rem,5.4vw,5.4rem);
+  line-height:1.01;
+  letter-spacing:-3.8px;
+  margin:12px 0 20px;
+}
+.hero-visual-copy p {
+  max-width:610px;
+  color:var(--muted);
+  font-size:1.12rem;
+  line-height:1.7;
+}
+.trust-left { justify-content:flex-start; margin-top:12px; border-top:1px solid var(--line); padding-top:20px; }
+.principles-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+.principle-card { padding:30px 26px 34px; border-right:1px solid var(--line); }
+.principle-card:last-child { border-right:0; }
+.principle-card span { font-size:.75rem; font-weight:800; color:#9CA3AF; letter-spacing:.08em; }
+.principle-card h3 { margin:18px 0 8px; font-size:1.22rem; }
+.principle-card p { margin:0; color:var(--muted); line-height:1.65; }
+@media (max-width:1000px) {
+  .hero-visual { grid-template-columns:1fr; gap:34px; min-height:auto; }
+  .hero-visual-image,.hero-visual-image img { min-height:420px; max-height:520px; }
+  .principles-grid { grid-template-columns:1fr; }
+  .principle-card { border-right:0; border-bottom:1px solid var(--line); }
+  .principle-card:last-child { border-bottom:0; }
+}
