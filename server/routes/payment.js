@@ -1,132 +1,130 @@
 const express = require('express');
+const crypto = require('crypto');
+const { randomUUID } = require('crypto');
 const router = express.Router();
-const Donation = require('../models/Donation'); // ✅ Matches Step 1
-const Cause = require('../models/Cause');       // ✅ Matches previous Cause model
-const sendEmail = require('../utils/sendEmail');// ✅ Matches Step 2
 
-// ==========================================
-// 1. ADMIN ROUTE (Get All Donations)
-// ==========================================
-router.get('/all', async (req, res) => {
+const Donation = require('../models/Donation');
+const Cause = require('../models/Cause');
+const sendEmail = require('../utils/sendEmail');
+const auth = require('../middleware/authMiddleware');
+const admin = require('../middleware/adminMiddleware');
+
+// This project intentionally uses a free demo payment flow.
+// No real card/UPI details are collected or stored.
+
+const createTransactionId = () =>
+  `JH-DEMO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
+
+router.get('/all', auth, admin, async (req, res) => {
   try {
-    const donations = await Donation.find().sort({ date: -1 });
+    const donations = await Donation.find().sort({ date: -1 }).lean();
     res.json(donations);
-  } catch (err) {
-    console.error("Fetch Error:", err.message);
-    res.status(500).send('Server Error');
+  } catch (error) {
+    console.error('Donation list error:', error);
+    res.status(500).json({ msg: 'Unable to load donations' });
   }
 });
 
-// ==========================================
-// 2. DONATION ROUTE (Merged Logic)
-// ==========================================
 router.post('/donate', async (req, res) => {
-  const { 
-    donorName, donorEmail, amount, tip, totalPaid, 
-    causeId, causeTitle, isAnonymous, dedication 
+  const {
+    donorName,
+    donorEmail,
+    amount,
+    tip = 0,
+    causeId,
+    causeTitle,
+    isAnonymous = false,
+    dedication = ''
   } = req.body;
 
-  // 💎 Generate Transaction ID
-  const year = new Date().getFullYear();
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  const transactionId = `JH-80G-${year}-${randomNum}`;
-  const donationDate = new Date().toLocaleDateString('en-IN', { 
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-  });
+  const donationAmount = Number(amount);
+  const tipAmount = Number(tip);
+  const totalPaid = donationAmount + tipAmount;
+
+  if (!donorName?.trim() || !donorEmail?.trim()) {
+    return res.status(400).json({ msg: 'Name and email are required' });
+  }
+
+  if (!Number.isFinite(donationAmount) || donationAmount < 1) {
+    return res.status(400).json({ msg: 'Donation amount must be at least ₹1' });
+  }
+
+  if (!Number.isFinite(tipAmount) || tipAmount < 0) {
+    return res.status(400).json({ msg: 'Invalid tip amount' });
+  }
 
   try {
-    // --- A. VALIDATION ---
-    if (!amount || !donorName || !donorEmail) {
-      throw new Error("Missing required fields");
+    let cause = null;
+
+    if (causeId && causeId.length === 24) {
+      cause = await Cause.findOne({ _id: causeId, isVerified: true });
+      if (!cause) {
+        return res.status(404).json({ msg: 'Campaign not found' });
+      }
     }
 
-    // --- B. SAVE DONATION TO DB ---
-    const newDonation = new Donation({
-      donorName, donorEmail, amount,
-      tipAmount: tip || 0,
-      totalPaid: totalPaid || amount,
-      cause: String(causeId),
-      causeTitle, isAnonymous, dedication,
+    const transactionId = createTransactionId();
+
+    const donation = await Donation.create({
+      donorName: donorName.trim(),
+      donorEmail: donorEmail.trim().toLowerCase(),
+      amount: donationAmount,
+      tipAmount,
+      totalPaid,
+      cause: cause ? String(cause._id) : 'general',
+      causeTitle: cause?.title || causeTitle || 'General Donation',
+      isAnonymous: Boolean(isAnonymous),
+      dedication: dedication.trim(),
       transactionId
     });
 
-    await newDonation.save();
-
-    // --- C. UPDATE CAMPAIGN PROGRESS (CRITICAL FIX 🚨) ---
-    // This adds the donation amount to the Cause's 'raised' field
-    if (causeId && causeId.length > 15) {
-        // Use $inc (increment) to add to existing amount
-        // Use 'collected' or 'raised' depending on your Cause model. 
-        // Based on previous files, we used 'collected'.
-        await Cause.findByIdAndUpdate(causeId, { 
-            $inc: { collected: Number(amount) } 
-        });
-        console.log(`✅ Updated Campaign: ${causeTitle} +₹${amount}`);
+    if (cause) {
+      await Cause.updateOne(
+        { _id: cause._id },
+        { $inc: { collected: donationAmount } }
+      );
     }
 
-    // --- D. PREPARE EMAIL RECEIPT ---
-    const tipRow = tip > 0 
-      ? `<div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #666; font-size: 15px;">
-           <span>Platform Tip:</span>
-           <span>₹${tip}</span>
-         </div>`
-      : '';
-
-    const successHtml = `
-      <div style="background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px 20px;">
-        <div style="background-color: #ffffff; max-width: 480px; margin: 0 auto; border-radius: 12px; padding: 40px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e5e7eb;">
-          
-          <h1 style="color: #D97706; font-size: 26px; margin: 0 0 15px 0; font-weight: 700;">
-            You made someone smile today. ❤️
-          </h1>
-          
-          <p style="color: #4b5563; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">
-            Dear <strong>${donorName.split(' ')[0]}</strong>, <br><br>
-            Thank you. Because of you, there is a little less tension in the world today. You didn't just send money; you sent peace, relief, and hope.
-          </p>
-
-          <div style="background-color: #f8f9fa; border-radius: 10px; padding: 25px; border: 1px solid #e5e7eb;">
-            <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed #d1d5db;">
-              <p style="margin: 0 0 5px 0; color: #9ca3af; font-size: 12px; text-transform: uppercase; font-weight: bold;">Campaign</p>
-              <p style="margin: 0; color: #111; font-size: 16px; font-weight: 600;">${causeTitle}</p>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #666; font-size: 15px;">
-              <span>Donation Amount:</span>
-              <span>₹${amount}</span>
-            </div>
-            ${tipRow}
-            
-            <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-weight: bold; color: #111; font-size: 18px;">
-              <span>Total Paid:</span>
-              <span style="color: #059669;">₹${totalPaid || amount}</span>
-            </div>
-
-            <div style="margin-top: 20px; font-size: 13px; color: #9ca3af; font-family: monospace; background: #fff; padding: 10px; border-radius: 5px; border: 1px solid #eee;">
-              <div>ID: ${transactionId}</div>
-              <div>DATE: ${donationDate}</div>
-            </div>
-          </div>
-
-          <div style="margin-top: 25px; border: 2px dashed #10B981; background-color: #ECFDF5; color: #047857; padding: 12px; text-align: center; font-weight: bold; border-radius: 8px; font-size: 13px;">
-            ✅ 80G TAX EXEMPTION VALID
-          </div>
-
-          <div style="text-align: center; margin-top: 30px; border-top: 1px solid #f0f0f0; padding-top: 20px;">
-            <p style="margin: 0; font-style: italic; color: #666; font-size: 14px;">"The hands that help are holier than the lips that pray."</p>
-            <p style="margin: 10px 0 0 0; font-weight: bold; font-size: 12px; color: #D97706;">JUST HELPS FOUNDATION</p>
-          </div>
-        </div>
+    // Receipt is a demo receipt. It must not claim that a real payment
+    // processor or tax exemption was used.
+    const receiptHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
+        <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
+        <p>Thank you, ${donorName.trim()}.</p>
+        <p>This portfolio project records simulated donations for demonstration purposes.</p>
+        <hr>
+        <p><strong>Campaign:</strong> ${cause?.title || causeTitle || 'General Donation'}</p>
+        <p><strong>Donation:</strong> ₹${donationAmount.toFixed(2)}</p>
+        <p><strong>Platform tip:</strong> ₹${tipAmount.toFixed(2)}</p>
+        <p><strong>Total:</strong> ₹${totalPaid.toFixed(2)}</p>
+        <p><strong>Demo transaction:</strong> ${transactionId}</p>
+        <p style="color:#6B7280;font-size:13px">
+          No real payment was processed. This receipt is not a tax certificate.
+        </p>
       </div>
     `;
 
-    // --- E. SEND EMAIL & RESPOND ---
-    await sendEmail(donorEmail, `Receipt: You made a difference!`, "Donation Successful", successHtml);
-    res.json({ msg: 'Success', transactionId });
+    // Email failure should not undo a successfully recorded demo donation.
+    try {
+      await sendEmail(
+        donation.donorEmail,
+        `Just Helps Demo Receipt — ${transactionId}`,
+        `Demo donation recorded. Transaction: ${transactionId}`,
+        receiptHtml
+      );
+    } catch (emailError) {
+      console.error('Receipt email error:', emailError);
+    }
 
-  } catch (err) {
-    console.error("❌ Payment Error:", err.message);
-    res.status(500).json({ msg: "Payment Failed", error: err.message });
+    return res.status(201).json({
+      msg: 'Demo donation recorded',
+      transactionId,
+      paymentMode: 'demo',
+      donationId: donation._id
+    });
+  } catch (error) {
+    console.error('Donation error:', error);
+    return res.status(500).json({ msg: 'Unable to record donation' });
   }
 });
 
