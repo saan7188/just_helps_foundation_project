@@ -296,8 +296,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .review-modal > p { color:#6B7280; }
 .review-facts { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:18px 0; padding:15px; background:#F9FAFB; border-radius:12px; font-size:.82rem; }
 .proof-list { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; }
-.proof-list a { background:#EFF6FF; color:#1D4ED8; padding:8px 10px; border-radius:8px; text-decoration:none; font-size:.82rem; }
-.proof-list a:hover { background:#DBEAFE; }
+.proof-list a, .proof-link { background:#EFF6FF; color:#1D4ED8; padding:8px 10px; border-radius:8px; text-decoration:none; font-size:.82rem; border:0; cursor:pointer; font-weight:700; }
+.proof-list a:hover, .proof-link:hover { background:#DBEAFE; }
 .review-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .approve-button, .more-button, .reject-button { border:0; border-radius:9px; padding:11px 14px; color:#fff; font-weight:800; cursor:pointer; }
 .approve-button { background:var(--green); }
