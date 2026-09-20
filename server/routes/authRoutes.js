@@ -44,7 +44,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
       return res.status(400).json({ msg: 'No account found. Please Register.' });
     }
 
-    const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const otpCode = crypto.randomInt(1000, 10000).toString();
 
     await Otp.deleteMany({ email });
     await new Otp({ email, otp: otpCode }).save();
@@ -67,9 +67,15 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
   }
 });
 
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { msg: 'Too many verification attempts. Please try again later.' }
+});
+
 // @route   POST /api/auth/verify-otp
 // Used by registration to verify the code before asking for account details.
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const otp = String(req.body.otp || '').trim();
 
@@ -97,8 +103,14 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
+const loginOtpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { msg: 'Too many login attempts. Please try again later.' }
+});
+
 // @route   POST /api/auth/login-with-otp
-router.post('/login-with-otp', async (req, res) => {
+router.post('/login-with-otp', loginOtpLimiter, async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const otp = String(req.body.otp || '').trim();
 
@@ -192,8 +204,14 @@ router.post('/register', async (req, res) => {
   }
 });
 
+const passwordLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { msg: 'Too many login attempts. Please try again later.' }
+});
+
 // @route   POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', passwordLoginLimiter, async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
 
@@ -219,13 +237,27 @@ router.post('/login', async (req, res) => {
 // 3. PASSWORD RESET ROUTES
 // ==========================================
 
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { msg: 'Too many password reset requests. Please try again later.' }
+});
+
 // @route   POST /api/auth/forgotpassword
-router.post('/forgotpassword', async (req, res) => {
+router.post('/forgotpassword', passwordResetLimiter, async (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ msg: 'Enter a valid email address.' });
+  }
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ msg: 'Email not found' });
+
+    // Keep the response the same whether or not an account exists.
+    if (!user) {
+      return res.status(200).json({ msg: 'If an account exists, a reset email has been sent.' });
+    }
 
     const resetToken = crypto.randomBytes(20).toString('hex');
     user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
@@ -234,13 +266,20 @@ router.post('/forgotpassword', async (req, res) => {
 
     const resetUrl = `https://just-helps-foundation-project.vercel.app/reset-password/${resetToken}`;
 
-    await sendEmail(
+    const emailSent = await sendEmail(
       email,
       'Password Reset Request',
       `Click here to reset password: <a href="${resetUrl}">${resetUrl}</a>`
     );
 
-    res.status(200).json({ msg: 'Email sent' });
+    if (!emailSent) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      return res.status(500).json({ msg: 'Unable to send reset email. Please try again later.' });
+    }
+
+    res.status(200).json({ msg: 'If an account exists, a reset email has been sent.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Email could not be sent' });
