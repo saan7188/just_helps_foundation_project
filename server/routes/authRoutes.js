@@ -264,7 +264,8 @@ router.post('/forgotpassword', passwordResetLimiter, async (req, res) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    const resetUrl = `https://just-helps-foundation-project.vercel.app/reset-password/${resetToken}`;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl.replace(/\/$/, '')}/reset-password/${resetToken}`;
 
     const emailSent = await sendEmail(
       email,
