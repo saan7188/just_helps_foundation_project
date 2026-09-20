@@ -23,6 +23,7 @@ export default function Footer() {
               <li><Link to="/" style={{ color: '#9CA3AF', textDecoration: 'none' }}>Home</Link></li>
               <li><Link to="/create" style={{ color: '#9CA3AF', textDecoration: 'none' }}>Start a Fundraiser</Link></li>
               <li><Link to="/login" style={{ color: '#9CA3AF', textDecoration: 'none' }}>Login / Register</Link></li>
+              <li><Link to="/admin-login" style={{ color: '#6B7280', textDecoration: 'none', fontSize: '0.82rem' }}>Admin Portal</Link></li>
                          </ul>
           </div>
 
