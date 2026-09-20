@@ -128,7 +128,7 @@ export default function Donate() {
           <label>Name<input className="form-input" value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
           <label>Email<input className="form-input" type="email" value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
           <label>Optional dedication<textarea className="form-input" rows="3" value={dedication} onChange={e => setDedication(e.target.value)} placeholder="In memory of… or a message" /></label>
-          <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don't show my name publicly</label>
+          <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don&apos;t show my name publicly</label>
           {error && <div className="form-error">{error}</div>}
           <button className="primary-button full" onClick={startPayment}>Continue to payment · ₹{total.toLocaleString()}</button>
           <small className="demo-note">Portfolio demo: no real money or payment credentials are processed.</small>
