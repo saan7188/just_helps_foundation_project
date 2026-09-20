@@ -117,7 +117,7 @@ export default function Home({ config }) {
       {causes.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '30px' }}>
           {causes.map((cause) => {
-            const raised = cause.raised || 0;
+            const raised = cause.collected || 0;
             const target = cause.target || 100000;
             const percent = Math.min((raised / target) * 100, 100);
             const daysLeft = Math.ceil((new Date(cause.deadline) - new Date()) / (1000 * 3600 * 24));
