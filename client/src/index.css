@@ -195,6 +195,12 @@ a { color: inherit; }
 .empty-state h2 { color:var(--text);margin-bottom:7px; }
 
 @media (max-width: 900px) {
+  .hero-visual,.impact-panel,.admin-login-page { grid-template-columns:1fr; }
+  .hero-visual-image,.hero-visual-image img { min-height:420px;height:420px; }
+  .hero-visual-copy { text-align:center; }.hero-visual-copy h1 { margin-left:auto;margin-right:auto; }.hero-visual-copy p { margin-left:auto;margin-right:auto; }.trust-left { justify-content:center; }
+  .story-visual-grid { grid-template-columns:1fr 1fr; }
+  .admin-login-visual { min-height:420px;padding:45px; }
+}
   .category-grid { grid-template-columns:repeat(3,1fr); }
   .campaign-grid { grid-template-columns:repeat(2,1fr); }
   .campaign-detail-grid,.donation-layout { grid-template-columns:1fr; }
@@ -203,6 +209,11 @@ a { color: inherit; }
   .dashboard-card { grid-template-columns:1fr; }
 }
 @media (max-width: 640px) {
+  .hero-visual { gap:25px;padding-top:30px; }.hero-visual-image,.hero-visual-image img { min-height:330px;height:330px;border-radius:22px; }.hero-visual-copy h1 { font-size:2.8rem;letter-spacing:-2px; }
+  .story-visual-grid { grid-template-columns:1fr; }.story-visual-card { min-height:330px; }
+  .impact-panel { padding:24px; }.impact-steps { grid-template-columns:1fr; }.impact-steps div { min-height:auto; }
+  .admin-login-visual { display:none; }.admin-login-panel { padding:20px; }.admin-login-card { padding:26px 20px; }
+}
   .nav-inner { min-height:64px; }.nav-links { gap:10px;font-size:.8rem; }.nav-links>a:nth-child(2) { display:none; }
   .hero { padding-top:60px; }.hero h1 { letter-spacing:-1.8px; }
   .section-heading,.urgent-banner,.start-card,.general-donation-card,.sample-card,.admin-header { flex-direction:column;align-items:flex-start; }
@@ -212,3 +223,44 @@ a { color: inherit; }
   .result-card { padding:30px 20px; }.result-card h1 { font-size:2rem; }
   .stats-grid { grid-template-columns:1fr 1fr; }.admin-row { flex-direction:column;align-items:flex-start; }.admin-row-meta { width:100%;justify-content:space-between; }
 }
+
+
+/* Visual homepage */
+.hero-visual { display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;text-align:left;padding-top:58px; }
+.hero-visual-image { position:relative;min-height:560px;border-radius:32px;overflow:hidden;box-shadow:0 25px 60px rgba(31,41,55,.15); }
+.hero-visual-image img { width:100%;height:100%;min-height:560px;object-fit:cover;display:block; }
+.hero-visual-image::after { content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(0,0,0,.4)); }
+.hero-photo-badge { position:absolute;z-index:2;left:22px;bottom:22px;background:rgba(255,255,255,.93);backdrop-filter:blur(12px);padding:14px 17px;border-radius:14px;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.12); }
+.hero-photo-badge strong { font-size:1rem; }.hero-photo-badge span { color:var(--muted);font-size:.78rem; }
+.hero-visual-copy h1 { max-width:650px;font-size:clamp(2.8rem,5.2vw,5.2rem);line-height:.98;letter-spacing:-3px;margin:12px 0 20px; }
+.hero-visual-copy p { max-width:600px;color:var(--muted);font-size:1.15rem; }
+.trust-left { justify-content:flex-start;margin-top:12px; }
+.story-visual-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:18px; }
+.story-visual-card { position:relative;min-height:370px;border-radius:22px;overflow:hidden;background:#111827;box-shadow:0 10px 30px rgba(31,41,55,.08); }
+.story-visual-card img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s ease; }
+.story-visual-card:hover img { transform:scale(1.045); }
+.story-visual-overlay { position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,24,39,.02) 20%,rgba(17,24,39,.85) 100%); }
+.story-visual-copy { position:absolute;left:22px;right:22px;bottom:22px;color:#fff; }
+.story-visual-copy span { font-size:.68rem;letter-spacing:.12em;font-weight:800;color:#FDBA74; }
+.story-visual-copy h3 { font-size:1.35rem;line-height:1.15;margin:7px 0; }
+.story-visual-copy p { color:#E5E7EB;font-size:.87rem;line-height:1.45; }
+.impact-panel { background:#1F2937;color:#fff;border-radius:28px;padding:34px;display:grid;grid-template-columns:.9fr 1.1fr;gap:35px;align-items:center; }
+.impact-panel h2 { font-size:clamp(1.8rem,3vw,2.7rem);line-height:1.08;margin:8px 0;letter-spacing:-1px; }
+.impact-panel p { color:#D1D5DB;max-width:520px; }
+.impact-steps { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
+.impact-steps div { background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;min-height:145px;display:flex;flex-direction:column; }
+.impact-steps strong { color:#FDBA74;font-size:.8rem; }.impact-steps span { font-size:1.1rem;font-weight:800;margin:9px 0 4px; }.impact-steps small { color:#D1D5DB;line-height:1.35; }
+
+/* Dedicated admin access */
+.admin-login-page { min-height:calc(100vh - 72px);display:grid;grid-template-columns:1.15fr .85fr;background:#F8FAFC; }
+.admin-login-visual { min-height:calc(100vh - 72px);background-size:cover;background-position:center;position:relative;display:flex;align-items:flex-end;padding:65px; }
+.admin-login-overlay { position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,24,39,.08),rgba(17,24,39,.82)); }
+.admin-login-copy { position:relative;z-index:1;color:#fff;max-width:650px; }
+.admin-login-copy h1 { font-size:clamp(2.5rem,5vw,5rem);line-height:.98;letter-spacing:-2.5px;margin:12px 0 18px; }
+.admin-login-copy p { color:#E5E7EB;max-width:550px;font-size:1.05rem; }
+.admin-login-panel { display:grid;place-items:center;padding:35px; }
+.admin-login-card { width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:35px;box-shadow:0 20px 55px rgba(31,41,55,.1); }
+.admin-lock { width:48px;height:48px;display:grid;place-items:center;background:#FFF7ED;border-radius:14px;font-size:1.4rem;margin-bottom:18px; }
+.admin-login-card h2 { font-size:2rem;letter-spacing:-1px;margin:7px 0; }
+.admin-login-muted { color:var(--muted);margin-bottom:25px; }
+.admin-login-label { display:block;font-weight:750;margin-bottom:18px; }
