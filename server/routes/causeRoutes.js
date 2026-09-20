@@ -24,12 +24,24 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     if (!allowedMimeTypes.has(file.mimetype)) {
-      return cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'image'));
+      return cb(new Error('Only JPG, PNG and WebP images are allowed'));
     }
 
     cb(null, true);
   }
 });
+
+const uploadImage = (req, res, next) => {
+  upload.single('image')(req, res, error => {
+    if (!error) return next();
+
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ msg: 'Image must be 5 MB or smaller' });
+    }
+
+    return res.status(400).json({ msg: error.message || 'Invalid image upload' });
+  });
+};
 
 // --- ROUTES ---
 
@@ -42,11 +54,11 @@ router.get('/', causeController.getCauses);
 
 // Protected actions
 // Any signed-in user can submit a campaign. New campaigns stay pending until admin approval.
-router.post('/', auth, upload.single('image'), causeController.createCause);
+router.post('/', auth, uploadImage, causeController.createCause);
 
 // ID-based paths
 router.get('/:id', causeController.getCauseById);
-router.put('/:id', auth, admin, upload.single('image'), causeController.updateCause);
+router.put('/:id', auth, admin, uploadImage, causeController.updateCause);
 router.delete('/:id', auth, admin, causeController.deleteCause);
 
 module.exports = router;
