@@ -76,7 +76,7 @@ Optional frontend environment variable:
 VITE_API_URL=http://localhost:5000
 \`\`\`
 
-The deployed Vite frontend reads \`VITE_API_URL\) at build time, so changes to the Vercel environment variable require a new deployment. citeturn1search0turn1search1
+The deployed Vite frontend reads \`VITE_API_URL\` at build time, so changes to the Vercel environment variable require a new deployment.
 
 ### 2. Backend
 
@@ -126,7 +126,7 @@ The project includes:
 - Environment variables for deployment-specific secrets and URLs
 - A hashed admin credential configuration documented in \`.env.example\`
 
-File-upload controls follow an allowlist, generated filenames and size limits; these are established defensive practices for upload features. citeturn0search12turn0search3
+File-upload controls follow an allowlist, generated filenames and size limits; these are established defensive practices for upload features.
 
 ## Accessibility and responsive UX
 
@@ -140,7 +140,7 @@ The final UI pass includes:
 - Clear loading, empty and error states
 - Reduced decorative imagery on the homepage in favor of hierarchy and whitespace
 
-Visible focus indicators and properly associated form labels are core accessibility practices documented by W3C WAI. citeturn0search0turn0search8
+Visible focus indicators and properly associated form labels are core accessibility practices documented by W3C WAI.
 
 ## CI
 
