@@ -1,31 +1,25 @@
 const nodemailer = require('nodemailer');
 
-// UPDATED: Now accepts a 4th argument 'html' explicitly
 const sendEmail = async (to, subject, text, html = null) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 2525,             // ✅ FIXED: Render blocks 587. Use 2525.
+      host: 'smtp-relay.brevo.com',
+      port: 2525,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER, // ✅ FIXED: Use your Brevo Login Email
-        pass: process.env.EMAIL_PASS, // Your Brevo SMTP Key
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
       tls: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     });
 
     let finalHtml;
 
-    // LOGIC:
-    // 1. If 'html' argument is provided (Receipts), use it.
-    // 2. If 'html' is null (OTP), wrap the 'text' in the default template.
-    
     if (html) {
       finalHtml = html;
     } else {
-      // Default Verification Template (For Auth/OTP)
       finalHtml = `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
           <h2 style="color: #D97706;">JustHelps Verification</h2>
@@ -38,19 +32,21 @@ const sendEmail = async (to, subject, text, html = null) => {
       `;
     }
 
+    const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
     const mailOptions = {
-      from: `"JustHelps Foundation" <${process.env.EMAIL_USER}>`,
-      to: to,
-      subject: subject,
-      text: text, // Always include plain text fallback for notifications
-      html: finalHtml, 
+      from: `"JustHelps Foundation" <${fromAddress}>`,
+      to,
+      subject,
+      text,
+      html: finalHtml,
     };
 
     await transporter.sendMail(mailOptions);
     console.log(`📧 Email sent successfully to ${to}`);
     return true;
   } catch (error) {
-    console.error("❌ Email send failed:", error);
+    console.error('❌ Email send failed:', error);
     return false;
   }
 };
