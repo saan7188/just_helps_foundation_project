@@ -52,12 +52,26 @@ app.use((req, res, next) => {
 connectDB();
 
 app.get('/', (req, res) => res.send('Just Helps API is Running 🚀'));
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // API routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/causes', require('./routes/causeRoutes'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/site', require('./routes/site'));
+
+// API 404 handler
+app.use('/api', (req, res) => {
+  res.status(404).json({ msg: 'API route not found' });
+});
+
+// Central error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled server error:', err);
+  res.status(err.status || 500).json({
+    msg: err.status ? err.message : 'Internal server error'
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 
