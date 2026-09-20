@@ -70,7 +70,8 @@ router.post('/donate', async (req, res) => {
       }
     }
 
-    const transactionId = createTransactionId();\n    const category = String(cause?.category || req.body.category || 'General').trim();
+    const transactionId = createTransactionId();
+    const category = String(cause?.category || req.body.category || 'General').trim();
 
     if (cause) {
       const updatedCause = await Cause.findOneAndUpdate(
@@ -98,7 +99,8 @@ router.post('/donate', async (req, res) => {
         tipAmount,
         totalPaid,
         cause: cause ? String(cause._id) : 'general',
-        causeTitle: cause?.title || causeTitle || 'General Donation',\n        category,
+        causeTitle: cause?.title || causeTitle || 'General Donation',
+        category,
         isAnonymous: Boolean(isAnonymous),
         dedication: normalizedDedication.slice(0, 500),
         transactionId
