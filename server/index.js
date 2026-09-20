@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const connectDB = require('./db/db');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const mongoose = require('mongoose');
 
 const app = express();
 
@@ -52,7 +53,16 @@ app.use((req, res, next) => {
 connectDB();
 
 app.get('/', (req, res) => res.send('Just Helps API is Running 🚀'));
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => {
+  const databaseReady = mongoose.connection.readyState === 1;
+  const emailConfigured = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+  res.status(databaseReady ? 200 : 503).json({
+    status: databaseReady ? 'ok' : 'degraded',
+    database: databaseReady ? 'connected' : 'not connected',
+    emailConfigured
+  });
+});
 
 // API routes
 app.use('/api/auth', require('./routes/authRoutes'));
