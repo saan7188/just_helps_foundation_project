@@ -17,6 +17,7 @@ export default function Register() {
   const { login } = useAuth();
 
   const [step, setStep] = useState(1);
+  const [role, setRole] = useState('donor');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -94,11 +95,12 @@ export default function Register() {
         name: formData.name.trim(),
         email: formData.email,
         password: formData.password,
+        role,
         verificationToken
       });
 
-      login(res.data.token, Boolean(res.data.isAdmin));
-      navigate('/dashboard', { replace: true });
+      login(res.data.token, Boolean(res.data.isAdmin), res.data.role || role);
+      navigate(role === 'donor' ? '/donor-dashboard' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || 'Registration failed. Please try again.');
     } finally {
@@ -109,8 +111,13 @@ export default function Register() {
   return (
     <div className="container section auth-register-page">
       <div className="auth-register-card">
-        <span className="eyebrow">START A FUNDRAISER</span>
-        <h1>Create your fundraiser account</h1>
+        <span className="eyebrow">JOIN JUST HELPS</span>
+        <h1>Create your account</h1>
+        {step === 1 && <div className="role-choice">
+          <p>Choose your account type</p>
+          <label className="role-option"><input type="radio" name="role" checked={role === 'donor'} onChange={() => setRole('donor')} /><span><strong>Donation user</strong><small>Donate and see your donation history.</small></span></label>
+          <label className="role-option"><input type="radio" name="role" checked={role === 'fundraiser'} onChange={() => setRole('fundraiser')} /><span><strong>Fundraiser</strong><small>Submit a need with valid proof for admin review.</small></span></label>
+        </div>
         <p className="auth-muted">
           {step === 1 ? 'Step 1 of 3 · Email verification' : step === 2 ? 'Step 2 of 3 · Verify OTP' : 'Step 3 of 3 · Secure your account'}
         </p>
