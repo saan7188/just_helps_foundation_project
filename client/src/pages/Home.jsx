@@ -40,7 +40,7 @@ function CampaignCard({ cause }) {
   );
 }
 
-export default function Home({ config }) {
+export default function Home() {
   const navigate = useNavigate();
   const [causes, setCauses] = useState([]);
   const [urgent, setUrgent] = useState(null);
@@ -69,21 +69,21 @@ export default function Home({ config }) {
             alt="People supporting one another in a community"
             fetchPriority="high"
           />
-          <div className="hero-photo-badge"><strong>Real needs.</strong><span>Human stories.</span></div>
+          <div className="hero-photo-badge"><strong>One act of kindness.</strong><span>A ripple of hope.</span></div>
         </div>
 
         <div className="hero-visual-copy">
-          <span className="eyebrow">JUST HELPS FOUNDATION</span>
-          <h1>{config?.heroTitle || 'Small Acts. Massive Impact.'}</h1>
-          <p>{config?.heroSubtitle || 'A simple way to find a genuine need and make a meaningful difference.'}</p>
+          <span className="eyebrow">GIVE A LITTLE. CHANGE A LOT.</span>
+          <h1>Just Helps<span className="hero-title-period">.</span></h1>
+          <p>Even ₹1 can make a big impact in someone’s life. Every contribution matters, and every act of kindness can help someone take their next step.</p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={() => navigate('/causes')}>Explore causes</button>
+            <button className="primary-button" onClick={() => navigate('/causes')}>Explore causes <span aria-hidden="true">↗</span></button>
             <button className="secondary-button" onClick={() => navigate('/donate?category=Food')}>Donate now</button>
           </div>
           <div className="trust-strip trust-left" aria-label="Platform principles">
-            <span>✓ Verified campaigns</span>
-            <span>✓ Secure access</span>
-            <span>✓ Digital receipts</span>
+            <span>✓ Campaign review</span>
+            <span>✓ Secure accounts</span>
+            <span>✓ Clear donation records</span>
           </div>
         </div>
       </section>
@@ -127,7 +127,7 @@ export default function Home({ config }) {
           <div><span className="eyebrow">VERIFIED NEEDS</span><h2>People are asking for help</h2></div>
           <Link to="/causes">Explore all →</Link>
         </div>
-        {loading ? <div className="empty-state" aria-live="polite">Loading verified campaigns…</div> :
+        {loading ? <div className="empty-state" aria-live="polite">Loading campaigns…</div> :
           loadError ? <div className="empty-state"><h2>Campaigns are temporarily unavailable</h2><p>Please try again in a moment.</p></div> :
           causes.length ? <div className="campaign-grid">{causes.slice(0, 6).map(cause => <CampaignCard key={cause._id} cause={cause} />)}</div> :
           <div className="empty-state"><h2>No active campaigns right now</h2><p>Please check back soon.</p></div>}
@@ -135,23 +135,23 @@ export default function Home({ config }) {
 
       <section className="container section">
         <div className="section-heading">
-          <div><span className="eyebrow">HOW JUST HELPS WORKS</span><h2>Simple for donors. Careful for campaigns.</h2></div>
+          <div><span className="eyebrow">HOW JUST HELPS WORKS</span><h2>Small contributions. Real meaning.</h2></div>
         </div>
         <div className="principles-grid">
-          <article className="principle-card"><span>01</span><h3>Find a real need</h3><p>Browse campaigns by category, urgency and clear fundraising goals.</p></article>
-          <article className="principle-card"><span>02</span><h3>See what was verified</h3><p>Campaigns are reviewed with supporting information before they become public.</p></article>
-          <article className="principle-card"><span>03</span><h3>Make a clear contribution</h3><p>Choose a campaign, select an amount and receive a transparent demo receipt.</p></article>
+          <article className="principle-card"><span>01</span><h3>Find a need</h3><p>Explore campaigns by category, urgency and fundraising goal.</p></article>
+          <article className="principle-card"><span>02</span><h3>Understand the story</h3><p>Review the campaign details and supporting information before you give.</p></article>
+          <article className="principle-card"><span>03</span><h3>Give what you can</h3><p>No contribution is too small to be meaningful. Start with what feels right for you.</p></article>
         </div>
       </section>
 
       <section className="container section">
         <div className="start-card">
           <div>
-            <span className="eyebrow">NEED HELP?</span>
-            <h2>Start a fundraiser with Just Helps.</h2>
-            <p>Register, tell us what happened, provide supporting proof, and submit your campaign for verification.</p>
+            <span className="eyebrow">HAVE A NEED TO SHARE?</span>
+            <h2>Let your community show up for you.</h2>
+            <p>Tell your story, share supporting information, and submit a fundraiser for review.</p>
           </div>
-          <Link to="/register" className="primary-link-button">Start a fundraiser</Link>
+          <Link to="/register" className="primary-link-button">Start a fundraiser <span aria-hidden="true">↗</span></Link>
         </div>
       </section>
     </div>
