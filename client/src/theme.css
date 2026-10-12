@@ -246,3 +246,27 @@ label { color: #333333; }
 .brand-wordmark b { color: #F36B21; }
 .hero-visual-copy h1 .brand-just { display: inline-block; background: #252525; color: #FFFFFF; padding: 0 .12em .04em; border-radius: .08em; }
 .hero-visual-copy h1 .brand-helps { color: #F36B21; }
+
+
+/* Wordmark correction: black "Just", orange "Helps", both as text only */
+.brand-wordmark { background: transparent !important; padding: 0 !important; border-radius: 0 !important; color: #111111 !important; }
+.brand-wordmark > span { color: #111111 !important; }
+.brand-wordmark b { color: #F36B21 !important; }
+.hero-visual-copy h1 .brand-just { background: transparent !important; color: #111111 !important; padding: 0 !important; }
+.hero-visual-copy h1 .brand-helps { color: #F36B21 !important; }
+.role-choice { display: grid; gap: 10px; margin: 18px 0 22px; }
+.role-choice > p { margin-bottom: 2px; font-weight: 700; color: #292929; }
+.role-option { display: flex !important; align-items: flex-start; gap: 12px; padding: 15px; border: 1px solid #F0D8CA; border-radius: 12px; background: #FFFFFF; cursor: pointer; }
+.role-option:has(input:checked) { border-color: #F36B21; background: #FFF7F2; }
+.role-option input { margin-top: 5px; accent-color: #F36B21; }
+.role-option span { display: grid; gap: 3px; }
+.role-option small { color: #666666; font-weight: 400; }
+.donor-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+.donation-history { background: #FFFFFF; border: 1px solid #F0D8CA; border-radius: 18px; padding: 24px; }
+.donation-history h2 { margin-bottom: 16px; }
+.history-list { display: grid; gap: 12px; }
+.history-item { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 16px 0; border-bottom: 1px solid #F4E7E0; }
+.history-item:last-child { border-bottom: 0; }
+.history-item p, .history-item small { display: block; color: #666666; font-size: .85rem; }
+.history-item > strong { color: #D95712; white-space: nowrap; }
+@media (max-width: 600px) { .history-item { align-items: flex-start; } .donation-history { padding: 16px; } }
