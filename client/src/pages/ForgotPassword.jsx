@@ -17,7 +17,7 @@ export default function ForgotPassword() {
 
     try {
       await axios.post(`${API_URL}/api/auth/forgotpassword`, { email: email.trim().toLowerCase() });
-      setMsg('Check your email for the reset link.');
+      setMsg('If there’s an account for that email, a reset link is on its way.');
     } catch (err) {
       setError(err.response?.data?.msg || 'Unable to send the reset link. Try again.');
     } finally {
@@ -29,8 +29,8 @@ export default function ForgotPassword() {
     <div className="container section auth-simple-page">
       <div className="auth-simple-card">
         <span className="eyebrow">ACCOUNT RECOVERY</span>
-        <h1>Reset your password</h1>
-        <p>Enter your email to receive a secure password-reset link.</p>
+        <h1>Forgot your <span className="text-accent">password?</span></h1>
+        <p>Enter the email linked to your account. We’ll send you a reset link if there’s an account for it.</p>
 
         {msg && <div className="form-success" role="status">{msg}</div>}
         {error && <div className="form-error" role="alert">{error}</div>}
