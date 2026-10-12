@@ -112,6 +112,7 @@ export default function Login() {
           </form>
 
           <p className="auth-footer-copy">New to Just Helps? <Link to="/register">Register as donor or fundraiser</Link></p>
+          <p className="auth-footer-copy"><Link to="/admin-login">Administrator access</Link></p>
         </div>
       </section>
     </main>
