@@ -21,7 +21,7 @@ export default function Donate() {
   const navigate = useNavigate();
   const [cause, setCause] = useState(null);
   const [loadingCause, setLoadingCause] = useState(Boolean(id));
-  const [amount, setAmount] = useState(100);
+  const [amount, setAmount] = useState(() => Number(params.get('amount')) || 100);
   const [custom, setCustom] = useState(false);
   const [category, setCategory] = useState(params.get('category') || 'General');
   const [donorName, setDonorName] = useState('');
