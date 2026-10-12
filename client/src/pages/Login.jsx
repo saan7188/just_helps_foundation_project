@@ -50,7 +50,7 @@ export default function Login() {
         : await axios.post(`${API_URL}/api/auth/login`, { email, password: formData.password });
 
       login(res.data.token, Boolean(res.data.isAdmin), res.data.role || 'fundraiser');
-      navigate(res.data.isAdmin ? '/admin' : (location.state?.from || '/dashboard'), { replace: true });
+      navigate(res.data.isAdmin ? '/admin' : (location.state?.from || (res.data.role === 'donor' ? '/donor-dashboard' : '/dashboard')), { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed. Check your details and try again.');
     } finally {
