@@ -8,6 +8,7 @@ export default function Admin() {
   const [tab, setTab] = useState('overview');
   const [causes, setCauses] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [users, setUsers] = useState([]);
   const [site, setSite] = useState({ heroTitle: '', heroSubtitle: '', maintenanceMode: false, announcement: '' });
   const [selected, setSelected] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -17,13 +18,15 @@ export default function Admin() {
 
   const load = async () => {
     try {
-      const [c, d, s] = await Promise.all([
+      const [c, d, s, u] = await Promise.all([
         axios.get(`${API_URL}/api/causes/admin/all`, tokenConfig()),
         axios.get(`${API_URL}/api/payment/all`, tokenConfig()),
-        axios.get(`${API_URL}/api/site`)
+        axios.get(`${API_URL}/api/site`),
+        axios.get(`${API_URL}/api/auth/users`, tokenConfig())
       ]);
       setCauses(c.data || []);
       setDonations(d.data || []);
+      setUsers(u.data || []);
       setSite(s.data || site);
     } catch (err) {
       console.error(err);
@@ -162,7 +165,7 @@ export default function Admin() {
         </div>
 
         <div className="admin-tabs" role="tablist" aria-label="Admin sections">
-          {['overview', 'requests', 'campaigns', 'transactions', 'settings'].map(item => (
+          {['overview', 'users', 'requests', 'campaigns', 'transactions', 'settings'].map(item => (
             <button
               key={item}
               type="button"
@@ -198,6 +201,16 @@ export default function Admin() {
               </div>
             </div>
           </>
+        )}
+
+        {tab === 'users' && (
+          <section>
+            <div className="admin-section-title"><h2>Registered accounts</h2><span>{users.length} users</span></div>
+            <div className="transaction-table-wrap"><table className="transaction-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Registered</th><th>Action</th></tr></thead><tbody>
+              {users.map(user => <tr key={user._id}><td>{user.name}</td><td>{user.email}</td><td>{user.role || (user.isAdmin ? 'admin' : 'fundraiser')}</td><td>{user.date ? new Date(user.date).toLocaleDateString() : '—'}</td><td><button type="button" className="danger-outline-button" disabled={saving || user.isAdmin} onClick={async () => { if (!window.confirm('Delete this account? Its fundraiser and donation records may remain.')) return; setSaving(true); try { await axios.delete(`${API_URL}/api/auth/users/${user._id}`, tokenConfig()); await load(); } catch (err) { alert(err.response?.data?.msg || 'Unable to delete user'); } finally { setSaving(false); } }}>Delete</button></td></tr>)}
+            </tbody></table></div>
+            {!users.length && <div className="empty-state">No registered accounts found.</div>}
+          </section>
         )}
 
         {tab === 'requests' && (
