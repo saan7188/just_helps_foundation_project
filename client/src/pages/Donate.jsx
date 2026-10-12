@@ -185,8 +185,9 @@ export default function Donate() {
 
         <form className="donor-card" onSubmit={startPayment}>
           <div className="donor-card-header"><span>YOUR CONTRIBUTION</span><strong>₹{total.toLocaleString()}</strong></div>
-          <label>Name<input className="form-input" autoComplete="name" required readOnly value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
-          <label>Email<input className="form-input" type="email" autoComplete="email" required readOnly value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
+          <p className="auth-muted">No account needed. You can donate as a guest or sign in if you prefer.</p>
+          <label>Name<input className="form-input" autoComplete="name" required value={donorName} onChange={e => setDonorName(e.target.value)} placeholder="Your name" /></label>
+          <label>Email<input className="form-input" type="email" autoComplete="email" required value={donorEmail} onChange={e => setDonorEmail(e.target.value)} placeholder="you@example.com" /></label>
           <label>Optional dedication<textarea className="form-input" rows="3" maxLength="500" value={dedication} onChange={e => setDedication(e.target.value)} placeholder="In memory of… or a message" /></label>
           <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don&apos;t show my name publicly</label>
           {error && <div className="form-error" role="alert">{error}</div>}
