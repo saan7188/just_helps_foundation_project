@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import API_URL from './api';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Maintenance from './components/Maintenance';
-import { ProtectedRoute, AdminRoute } from './components/RouteGuards';
+import { ProtectedRoute } from './components/RouteGuards';
 
 import Home from './pages/Home';
 import Causes from './pages/Causes';
@@ -17,8 +17,6 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Create from './pages/Create';
 import Dashboard from './pages/Dashboard';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
 import Donate from './pages/Donate';
 import DonationResult from './pages/DonationResult';
 
@@ -47,7 +45,6 @@ function App() {
   }, []);
 
   const isOpenRoute =
-    location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/login') ||
     location.pathname.startsWith('/register') ||
     location.pathname.startsWith('/forgot-password') ||
@@ -76,8 +73,9 @@ function App() {
 
           <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+
+          <Route path="/admin-login" element={<Navigate to="/" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
