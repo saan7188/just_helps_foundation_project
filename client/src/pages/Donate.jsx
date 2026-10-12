@@ -63,24 +63,74 @@ export default function Donate() {
   const completePayment = async () => {
     setPaymentStep('PROCESSING');
     try {
-      const res = await axios.post(`${API_URL}/api/payment/donate`, {
+      const orderResponse = await axios.post(`${API_URL}/api/payment/create-order`, {
         causeId: id || undefined,
         causeTitle: cause?.title || `${category} Support`,
         category,
         amount: donationAmount,
         tip: 0,
-        totalPaid: total,
         donorName: donorName.trim(),
         donorEmail: donorEmail.trim().toLowerCase(),
         isAnonymous,
         dedication
       });
 
-      navigate(`/donation-result?status=success&transaction=${encodeURIComponent(res.data.transactionId)}&category=${encodeURIComponent(res.data.category || category)}&cause=${encodeURIComponent(res.data.causeTitle || cause?.title || '')}&impact=${encodeURIComponent(res.data.impactMessage || impactMessage)}`, { replace: true });
+      const order = orderResponse.data;
+      if (!window.Razorpay) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('Unable to load Razorpay Checkout. Check your internet connection.'));
+          document.body.appendChild(script);
+        });
+      }
+
+      const checkout = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'Just Helps Foundation',
+        description: 'Donation (Razorpay Test Mode)',
+        order_id: order.orderId,
+        prefill: { name: donorName.trim(), email: donorEmail.trim().toLowerCase() },
+        notes: { project: 'Just Helps Foundation', mode: 'test' },
+        theme: { color: '#D97706' },
+        modal: {
+          ondismiss: async () => {
+            try {
+              await axios.post(`${API_URL}/api/payment/cancel`, { orderId: order.orderId });
+            } catch (cancelError) {
+              console.warn('Could not update cancelled test order:', cancelError);
+            }
+            setShowPayment(false);
+            navigate('/donation-result?status=cancelled');
+          },
+        },
+        handler: async response => {
+          try {
+            const verified = await axios.post(`${API_URL}/api/payment/verify`, response);
+            const data = verified.data;
+            setShowPayment(false);
+            navigate(`/donation-result?status=success&transaction=${encodeURIComponent(data.transactionId)}&category=${encodeURIComponent(data.category || category)}&cause=${encodeURIComponent(data.causeTitle || cause?.title || '')}&impact=${encodeURIComponent(data.impactMessage || impactMessage)}`, { replace: true });
+          } catch (verifyError) {
+            console.error(verifyError);
+            setPaymentStep('FAILED');
+            setError(verifyError.response?.data?.msg || 'Payment verification failed. Please contact support before retrying.');
+          }
+        },
+      });
+
+      checkout.on('payment.failed', response => {
+        setPaymentStep('FAILED');
+        setError(response.error?.description || 'The test payment failed. You can try again.');
+      });
+      setPaymentStep('OPTIONS');
+      checkout.open();
     } catch (err) {
       console.error(err);
       setPaymentStep('FAILED');
-      setError(err.response?.data?.msg || 'The donation could not be recorded.');
+      setError(err.response?.data?.msg || err.message || 'Unable to start Razorpay Checkout.');
     }
   };
 
@@ -132,23 +182,22 @@ export default function Donate() {
           <label className="checkbox-row"><input type="checkbox" checked={isAnonymous} onChange={e => setIsAnonymous(e.target.checked)} /> Don&apos;t show my name publicly</label>
           {error && <div className="form-error" role="alert">{error}</div>}
           <button className="primary-button full" type="submit">Continue to payment · ₹{total.toLocaleString()}</button>
-          <small className="demo-note">Portfolio demo: no real money or payment credentials are processed.</small>
+          <small className="demo-note">Razorpay Test Mode only. No real donation is made; no tax certificate is issued.</small>
         </form>
       </div>
 
       {showPayment && (
         <div className="modal-backdrop" role="presentation">
           <div className="payment-modal" role="dialog" aria-modal="true" aria-labelledby="payment-title">
-            <header><strong id="payment-title">Just Helps demo payment</strong><span>₹{total.toLocaleString()}</span></header>
-            <div className="demo-banner">Demo only · no real card, UPI or bank details are collected.</div>
+            <header><strong id="payment-title">Just Helps test payment</strong><span>₹{total.toLocaleString()}</span></header>
+            <div className="demo-banner">Razorpay Test Mode · test payments only; no real money is charged.</div>
 
             {paymentStep === 'OPTIONS' && <>
               <h3>Choose a demo payment method</h3>
-              {['UPI', 'Card', 'Net Banking'].map(method => (
-                <button key={method} type="button" className="payment-option" onClick={completePayment}>
-                  {method}<span aria-hidden="true">→</span>
-                </button>
-              ))}
+              <p>Razorpay test checkout opens next. Use Razorpay's test payment details only; no real money is charged.</p>
+              <button type="button" className="primary-button full" onClick={completePayment}>
+                Continue with Razorpay Test Mode →
+              </button>
               <button type="button" className="cancel-payment" onClick={cancelPayment}>Cancel payment</button>
             </>}
 
