@@ -379,6 +379,16 @@ router.put('/resetpassword/:token', async (req, res) => {
   }
 });
 
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('name email role isAdmin date');
+    if (!user) return res.status(404).json({ msg: 'Account not found.' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ msg: 'Unable to load account details.' });
+  }
+});
+
 // ==========================================
 // 4. ADMIN USER MANAGEMENT
 // ==========================================
