@@ -50,7 +50,7 @@ router.get('/all', auth, admin, async (req, res) => {
   }
 });
 
-// Create a server-side Razorpay order. The browser never receives the key secret.
+router.get('/mine', auth, async (req, res) => {\n  try {\n    const User = require('../models/User');\n    const user = await User.findById(req.user.id).select('email');\n    if (!user) return res.status(404).json({ msg: 'Account not found.' });\n    const donations = await Donation.find({ donorEmail: user.email, paymentStatus: 'success' }).sort({ date: -1 }).lean();\n    res.json(donations);\n  } catch (error) {\n    console.error('Donor history error:', error);\n    res.status(500).json({ msg: 'Unable to load donation history.' });\n  }\n});\n\n// Create a server-side Razorpay order. The browser never receives the key secret.
 router.post('/create-order', async (req, res) => {
   try {
     const { client, keyId } = getRazorpay();
