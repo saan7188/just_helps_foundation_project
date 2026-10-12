@@ -180,3 +180,7 @@ label { color: #E8E0D7; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.hero-visual-copy h1 { color: #F7F3ED; }
+.hero-title-period { color: #FF6A00; }
+.hero-visual-copy p { max-width: 580px; }
