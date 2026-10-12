@@ -71,8 +71,8 @@ export default function Login() {
       <section className="auth-panel">
         <div className="auth-card">
           <span className="eyebrow">JUST HELPS ACCOUNT</span>
-          <h2>Welcome back</h2>
-          <p className="auth-muted">Sign in to your donor or fundraiser account.</p>
+          <h2><span className="text-accent">Welcome</span> back</h2>
+          <p className="auth-muted">Pick up where you left off, or make an account to get started.</p>
 
           {location.state?.message && <div className="form-success" role="status">{location.state.message}</div>}
           {error && <div className="form-error" role="alert">{error}</div>}
@@ -111,7 +111,7 @@ export default function Login() {
             )}
           </form>
 
-          <p className="auth-footer-copy">New to Just Helps? <Link to="/register">Register as donor or fundraiser</Link></p>
+          <p className="auth-footer-copy">New here? <Link to="/register">Create an account</Link></p>
           <p className="auth-footer-copy"><Link to="/admin-login">Administrator access</Link></p>
         </div>
       </section>
