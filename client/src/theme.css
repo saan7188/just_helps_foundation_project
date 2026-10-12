@@ -285,3 +285,49 @@ label { color: #333333; }
 .auth-card h2 .text-accent, .auth-register-card h1 .text-accent, .auth-simple-card h1 .text-accent { color: #F36B21; }
 .amount-grid { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); }
 .amount-grid button:first-child { border-color: #F36B21; }
+
+
+/* Final light-theme consistency pass */
+:root {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --text: #252525;
+  --muted: #666666;
+  --line: #F0D8CA;
+  --card: #FFFFFF;
+}
+html, body { background: #FFFFFF; color: #252525; }
+body { color: #252525; }
+.site-nav { background: rgba(255,255,255,.96); border-bottom-color: #F2E5DE; }
+.nav-links { color: #444444; }
+.nav-login { background: #F36B21; color: #FFFFFF !important; border-color: #F36B21; }
+.nav-login:hover { background: #D95712; }
+.page-intro h1, .section-heading h2, .section h2, .section h3,
+.donation-history h2, .history-item strong, .dashboard-card h2 { color: #252525; }
+.page-intro p, .section p, .section small, .empty-state { color: #666666; }
+.donation-history, .dashboard-card, .stat-card, .admin-row, .transaction-table,
+.result-card, .auth-simple-card, .auth-register-card, .auth-card, .payment-modal,
+.review-modal, .admin-login-card, .form-card, .sample-card, .donor-card,
+.campaign-detail-card, .campaign-info-card {
+  background: #FFFFFF;
+  color: #252525;
+  border-color: #F0D8CA;
+  box-shadow: 0 8px 28px rgba(74, 43, 25, .04);
+}
+.auth-split-page, .auth-register-page, .auth-simple-page, .admin-login-page,
+.admin-page, .result-page { background: #FFFFFF; color: #252525; }
+.auth-muted, .auth-footer-copy, .admin-login-muted, .admin-section-title p,
+.admin-row p, .stat-card span { color: #666666; }
+.auth-card h2, .auth-register-card h1, .auth-simple-card h1 { color: #252525; }
+.auth-field, .field-label-row { color: #333333; }
+.site-footer { background: #FFF9F5; color: #666666; border-top-color: #F2E5DE; }
+.footer-grid h3, .footer-grid h4 { color: #252525; }
+.hero-visual-copy h1 { color: #252525; }
+.hero-visual-copy p, .category-card small, .campaign-card-body p,
+.principle-card p, .section p, .page-intro p { color: #666666; }
+.history-item { border-bottom-color: #F4E7E0; }
+.history-item p, .history-item small { color: #666666; }
+@media (max-width: 720px) {
+  .nav-links { gap: 12px; }
+  .nav-login { padding: 8px 10px; }
+}
