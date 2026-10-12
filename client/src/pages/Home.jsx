@@ -81,9 +81,9 @@ export default function Home() {
         </div>
         <div className="hero-visual-copy">
           <h1><span className="brand-just">Just</span> <span className="brand-helps">Helps</span><span className="hero-title-period">.</span></h1>
-          <p>Even 1 rupee creates big impact in someone life.</p>
+          <p><span className="text-accent">Even ₹1</span> can help someone take the next step.</p>
           <div className="hero-actions">
-            <button className="primary-button" onClick={() => navigate('/donate?category=Food&amount=20')}>Donate ₹20</button>
+            <button className="primary-button donate-one-rupee" onClick={() => navigate('/donate?category=General&amount=1')}>Donate ₹1</button>
             <button className="secondary-button" onClick={() => navigate('/causes')}>Explore needs</button>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default function Home() {
 
       <section className="container section needs-section">
         <div className="section-heading">
-          <div><h2>Choose where you can help</h2><p>Start with a small amount. Make it count.</p></div>
+          <div><h2>Choose where you can <span className="text-accent">help</span></h2><p>Start with a small amount. Make it count.</p></div>
         </div>
         <div className="category-grid">
           {categories.map(item => (
@@ -116,7 +116,7 @@ export default function Home() {
       )}
 
       <section className="container section">
-        <div className="section-heading"><div><h2>Needs people are sharing</h2><p>Choose a campaign and read its details before contributing.</p></div><Link to="/causes">All campaigns</Link></div>
+        <div className="section-heading"><div><h2>Needs people are <span className="text-accent">sharing</span></h2><p>Choose a campaign and read its details before contributing.</p></div><Link to="/causes">All campaigns</Link></div>
         {loading ? <div className="empty-state" aria-live="polite">Loading campaigns…</div> :
           loadError ? <div className="empty-state"><h2>Campaigns are temporarily unavailable</h2><p>Please try again in a moment.</p></div> :
           causes.length ? <div className="campaign-grid">{causes.slice(0, 6).map(cause => <CampaignCard key={cause._id} cause={cause} />)}</div> :
