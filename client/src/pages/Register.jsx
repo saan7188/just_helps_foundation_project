@@ -112,11 +112,11 @@ export default function Register() {
     <div className="container section auth-register-page">
       <div className="auth-register-card">
         <span className="eyebrow">JOIN JUST HELPS</span>
-        <h1>Create your account</h1>
+        <h1>Create your <span className="text-accent">account</span></h1>
         {step === 1 && <div className="role-choice">
-          <p>Choose your account type</p>
-          <label className="role-option"><input type="radio" name="role" checked={role === 'donor'} onChange={() => setRole('donor')} /><span><strong>Donation user</strong><small>Donate and see your donation history.</small></span></label>
-          <label className="role-option"><input type="radio" name="role" checked={role === 'fundraiser'} onChange={() => setRole('fundraiser')} /><span><strong>Fundraiser</strong><small>Submit a need with valid proof for admin review.</small></span></label>
+          <p>How would you like to use Just Helps?</p>
+          <label className="role-option"><input type="radio" name="role" checked={role === 'donor'} onChange={() => setRole('donor')} /><span><strong>Donate</strong><small>Contribute to needs and keep track of your donations.</small></span></label>
+          <label className="role-option"><input type="radio" name="role" checked={role === 'fundraiser'} onChange={() => setRole('fundraiser')} /><span><strong>Raise funds</strong><small>Share a need and send proof for review.</small></span></label>
         </div>
         <p className="auth-muted">
           {step === 1 ? 'Step 1 of 3 · Email verification' : step === 2 ? 'Step 2 of 3 · Verify OTP' : 'Step 3 of 3 · Secure your account'}
@@ -134,7 +134,7 @@ export default function Register() {
               <input className="form-input" type="email" autoComplete="email" required placeholder="name@example.com" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
             </label>
             <button disabled={loading} className="primary-button full">{loading ? 'Sending OTP…' : 'Send OTP'}</button>
-            <p className="auth-footer-copy">Already registered? <Link to="/login">Log in</Link></p>
+            <p className="auth-footer-copy">Already have an account? <Link to="/login">Sign in</Link></p>
           </form>
         )}
 
