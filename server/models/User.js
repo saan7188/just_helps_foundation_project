@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   
   // 🔐 CRITICAL: Determines if user can see Admin Dashboard
   isAdmin: { type: Boolean, default: false },
+  role: { type: String, enum: ['donor', 'fundraiser', 'admin'], default: 'fundraiser' },
   
   // For Password Reset functionality
   resetPasswordToken: String,
