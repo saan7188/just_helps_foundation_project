@@ -16,17 +16,27 @@ export default function Dashboard() {
   const [causes, setCauses] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
-    axios.get(`${API_URL}/api/causes/mine`, { headers: { 'x-auth-token': localStorage.getItem('token') } })
-      .then(res => setCauses(res.data || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  };
-
   useEffect(() => {
-    load();
-    const refreshId = window.setInterval(load, 20000);
-    return () => window.clearInterval(refreshId);
+    let active = true;
+    const load = async (initial = false) => {
+      try {
+        const res = await axios.get(`${API_URL}/api/causes/mine`, {
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+        if (active) setCauses(res.data || []);
+      } catch (err) {
+        if (active) console.error('Unable to refresh fundraiser list:', err);
+      } finally {
+        if (active && initial) setLoading(false);
+      }
+    };
+
+    load(true);
+    const refreshId = window.setInterval(() => load(false), 20000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshId);
+    };
   }, []);
 
   return (
