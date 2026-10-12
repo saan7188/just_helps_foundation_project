@@ -331,3 +331,55 @@ body { color: #252525; }
   .nav-links { gap: 12px; }
   .nav-login { padding: 8px 10px; }
 }
+
+
+/* Light theme finish: keep donor, fundraiser and admin screens consistent. */
+.admin-tab,
+.admin-workflow-card,
+.process-strip,
+.admin-login-card,
+.admin-list .admin-row,
+.sample-card,
+.principle-card,
+.review-facts,
+.workflow-steps span,
+.review-modal,
+.payment-modal,
+.transaction-table,
+.transaction-table-wrap,
+.info-card,
+.compact-info,
+.verification-callout,
+.peace-card {
+  background-color: #FFFFFF;
+  color: #292929;
+  border-color: #F0D8CA;
+}
+.admin-tab { color: #555555; }
+.admin-tab:hover { border-color: #F36B21; color: #D95712; }
+.admin-tab.active { background: #FFF0E8; color: #B9460B; border-color: #F36B21; }
+.admin-workflow-card p,
+.admin-section-title p,
+.admin-row p,
+.workflow-steps span,
+.info-card p,
+.compact-info p { color: #666666; }
+.workflow-steps span { background: #FFF9F5; }
+.transaction-table th,
+.transaction-table thead th { background: #FFF4ED; color: #5B514B; }
+.transaction-table td,
+.transaction-table th { border-color: #F0D8CA; }
+.status-approved { background: #EAF7EF; color: #22683D; }
+.status-pending { background: #FFF0E8; color: #A84612; }
+.status-rejected { background: #FDECEC; color: #A42D2D; }
+.demo-banner,
+.sample-card,
+.peace-card,
+.verification-callout { background: #FFF7F2; color: #70432D; border-color: #F0D8CA; }
+.admin-badge { background: #FFF0E8; color: #B9460B; }
+.danger-outline-button { background: #FFFFFF; color: #B42318; border-color: #E8B5B1; }
+.danger-outline-button:hover { background: #FFF3F2; }
+.auth-mode-switch { background: #F8F1EC; }
+.auth-mode-switch button { color: #5B514B; }
+.auth-mode-switch button.active { background: #F36B21; color: #FFFFFF; }
+.site-footer { background: #FFF9F5; }
