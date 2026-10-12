@@ -8,8 +8,7 @@ export default function Navbar() {
     <nav className="site-nav">
       <div className="container nav-inner">
         <Link to="/" className="brand" aria-label="Just Helps home">
-          <span className="brand-mark" aria-hidden="true">J<span>+</span></span>
-          <span>JUST<b>HELPS</b></span>
+          <span className="brand-wordmark"><span>Just</span> <b>Helps</b></span>
         </Link>
         <div className="nav-links">
           <Link to="/causes">Explore causes</Link>
