@@ -41,7 +41,7 @@ export default function ResetPassword() {
     <div className="container section auth-simple-page">
       <div className="auth-simple-card">
         <span className="eyebrow">ACCOUNT RECOVERY</span>
-        <h1>Create a new password</h1>
+        <h1>Create a <span className="text-accent">new password</span></h1>
         <p>Use a strong password you do not reuse elsewhere.</p>
 
         {error && <div className="form-error" role="alert">{error}</div>}
