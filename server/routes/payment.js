@@ -55,7 +55,7 @@ router.get('/mine', auth, async (req, res) => {
     const User = require('../models/User');
     const user = await User.findById(req.user.id).select('email');
     if (!user) return res.status(404).json({ msg: 'Account not found.' });
-    const donations = await Donation.find({ donorEmail: user.email, paymentStatus: 'success' }).sort({ date: -1 }).lean();
+    const donations = await Donation.find({ $or: [{ userId: user._id }, { donorEmail: user.email }], paymentStatus: 'success' }).sort({ date: -1 }).lean();
     res.json(donations);
   } catch (error) {
     console.error('Donor history error:', error);
@@ -114,6 +114,7 @@ router.post('/create-order', auth, async (req, res) => {
     });
 
     const donation = await Donation.create({
+      userId: account._id,
       donorName: normalizedName,
       donorEmail: normalizedEmail,
       amount: donationAmount,
