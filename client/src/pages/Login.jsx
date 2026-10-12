@@ -49,7 +49,7 @@ export default function Login() {
         ? await axios.post(`${API_URL}/api/auth/login-with-otp`, { email, otp: formData.otp.trim() })
         : await axios.post(`${API_URL}/api/auth/login`, { email, password: formData.password });
 
-      login(res.data.token, Boolean(res.data.isAdmin));
+      login(res.data.token, Boolean(res.data.isAdmin), res.data.role || 'fundraiser');
       navigate(res.data.isAdmin ? '/admin' : (location.state?.from || '/dashboard'), { replace: true });
     } catch (err) {
       setError(err.response?.data?.msg || 'Login failed. Check your details and try again.');
@@ -70,9 +70,9 @@ export default function Login() {
 
       <section className="auth-panel">
         <div className="auth-card">
-          <span className="eyebrow">FUNDRAISER ACCESS</span>
+          <span className="eyebrow">JUST HELPS ACCOUNT</span>
           <h2>Welcome back</h2>
-          <p className="auth-muted">Manage your campaigns and track their progress.</p>
+          <p className="auth-muted">Sign in to your donor or fundraiser account.</p>
 
           {location.state?.message && <div className="form-success" role="status">{location.state.message}</div>}
           {error && <div className="form-error" role="alert">{error}</div>}
@@ -111,7 +111,7 @@ export default function Login() {
             )}
           </form>
 
-          <p className="auth-footer-copy">Need an account? <Link to="/register">Start a fundraiser</Link></p>
+          <p className="auth-footer-copy">New to Just Helps? <Link to="/register">Register as donor or fundraiser</Link></p>
         </div>
       </section>
     </main>
