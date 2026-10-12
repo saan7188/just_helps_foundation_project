@@ -273,3 +273,15 @@ label { color: #333333; }
 
 .history-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .history-actions .secondary-link-button { padding: 7px 10px; font-size: .8rem; }
+
+
+/* Just Helps brand accents and small-donation entry point */
+.text-accent { color: #F36B21; }
+.hero-visual-copy h1 .brand-just { background: transparent !important; color: #171717 !important; padding: 0 !important; }
+.hero-visual-copy h1 .brand-helps { color: #F36B21 !important; }
+.donate-one-rupee { min-height: 54px; padding: 15px 28px; font-size: 1.08rem; font-weight: 800; box-shadow: 0 8px 22px rgba(243,107,33,.24); }
+.donate-one-rupee::before { content: "₹1"; display: inline-grid; place-items: center; width: 26px; height: 26px; margin-right: 9px; border-radius: 50%; background: #FFFFFF; color: #F36B21; font-size: .78rem; }
+.auth-card h2, .auth-register-card h1, .auth-simple-card h1 { color: #171717; }
+.auth-card h2 .text-accent, .auth-register-card h1 .text-accent, .auth-simple-card h1 .text-accent { color: #F36B21; }
+.amount-grid { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); }
+.amount-grid button:first-child { border-color: #F36B21; }
