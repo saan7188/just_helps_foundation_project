@@ -23,7 +23,11 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    const refreshId = window.setInterval(load, 20000);
+    return () => window.clearInterval(refreshId);
+  }, []);
 
   return (
     <div className="container section">
