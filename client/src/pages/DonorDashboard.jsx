@@ -8,10 +8,29 @@ export default function DonorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   useEffect(() => {
-    axios.get(`${API_URL}/api/payment/mine`, { headers: { 'x-auth-token': localStorage.getItem('token') } })
-      .then(res => setDonations(res.data || []))
-      .catch(err => setError(err.response?.data?.msg || 'Unable to load donation history.'))
-      .finally(() => setLoading(false));
+    let active = true;
+    const loadDonations = async (initial = false) => {
+      try {
+        const res = await axios.get(`${API_URL}/api/payment/mine`, {
+          headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+        if (active) {
+          setDonations(res.data || []);
+          setError('');
+        }
+      } catch (err) {
+        if (active && initial) setError(err.response?.data?.msg || 'Unable to load donation history.');
+      } finally {
+        if (active && initial) setLoading(false);
+      }
+    };
+
+    loadDonations(true);
+    const refreshId = window.setInterval(() => loadDonations(false), 20000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshId);
+    };
   }, []);
   return <div className="container section donor-dashboard">
     <div className="page-intro"><span className="eyebrow">DONOR ACCOUNT</span><h1>Your giving, all in one place.</h1><p>Review previous donations or make another contribution.</p></div>
