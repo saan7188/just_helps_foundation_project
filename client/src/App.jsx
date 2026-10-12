@@ -23,8 +23,6 @@ import DonationResult from './pages/DonationResult';
 function App() {
   const location = useLocation();
   const [config, setConfig] = useState({
-    heroTitle: 'Small Acts. Massive Impact.',
-    heroSubtitle: 'A simple way to find a genuine need and make a meaningful difference.',
     maintenanceMode: false,
     announcement: ''
   });
@@ -59,7 +57,7 @@ function App() {
       <Navbar />
       <main style={{ flex: 1 }}>
         <Routes>
-          <Route path="/" element={<Home config={config} />} />
+          <Route path="/" element={<Home />} />
           <Route path="/causes" element={<Causes />} />
           <Route path="/campaign/:id" element={<Campaign />} />
           <Route path="/donate" element={<Donate />} />
