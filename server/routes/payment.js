@@ -8,6 +8,7 @@ const Donation = require('../models/Donation');
 const Cause = require('../models/Cause');
 const sendEmail = require('../utils/sendEmail');
 const auth = require('../middleware/authMiddleware');
+const jwt = require('jsonwebtoken');
 const admin = require('../middleware/adminMiddleware');
 
 const impactByCategory = {
@@ -40,6 +41,20 @@ const getRazorpay = () => {
 
 const validAmount = value => Number.isFinite(value) && value >= 1 && value <= 1000000;
 
+// Donations are open to guests. A valid session is optional and is used only to
+// associate a donation with a donor account when the signed-in role is donor.
+const optionalAuth = (req, res, next) => {
+  const token = req.header('x-auth-token');
+  if (!token) return next();
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch {
+    return res.status(401).json({ msg: 'Your session has expired. Sign in again or continue as a guest.' });
+  }
+};
+
 router.get('/all', auth, admin, async (req, res) => {
   try {
     const donations = await Donation.find().sort({ date: -1 }).lean();
@@ -65,12 +80,16 @@ router.get('/mine', auth, async (req, res) => {
 });
 
 // Create a server-side Razorpay order. The browser never receives the key secret.
-router.post('/create-order', auth, async (req, res) => {
+router.post('/create-order', optionalAuth, async (req, res) => {
   try {
     const { client, keyId } = getRazorpay();
     const User = require('../models/User');
-    const account = await User.findById(req.user.id);
-    if (!account || account.role !== 'donor') return res.status(403).json({ msg: 'Sign in with a donation user account to donate.' });
+    let account = null;
+    if (req.user?.id && req.user.id !== 'admin') {
+      account = await User.findById(req.user.id);
+      if (!account) return res.status(401).json({ msg: 'Your account could not be found. Continue as a guest or sign in again.' });
+      if (account.role !== 'donor') account = null;
+    }
     const {
       donorName, donorEmail, amount, tip = 0, causeId,
       causeTitle, category = 'General', isAnonymous = false, dedication = ''
@@ -79,8 +98,8 @@ router.post('/create-order', auth, async (req, res) => {
     const donationAmount = Number(amount);
     const tipAmount = Number(tip);
     const totalPaid = donationAmount + tipAmount;
-    const normalizedName = String(account.name || donorName || '').trim();
-    const normalizedEmail = String(account.email || '').trim().toLowerCase();
+    const normalizedName = String(account?.name || donorName || '').trim();
+    const normalizedEmail = String(account?.email || donorEmail || '').trim().toLowerCase();
 
     if (!normalizedName || normalizedName.length > 100 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       return res.status(400).json({ msg: 'Enter a valid name and email.' });
@@ -115,7 +134,7 @@ router.post('/create-order', auth, async (req, res) => {
     });
 
     const donation = await Donation.create({
-      userId: account._id,
+      userId: account?._id || null,
       donorName: normalizedName,
       donorEmail: normalizedEmail,
       amount: donationAmount,
@@ -146,7 +165,7 @@ router.post('/create-order', auth, async (req, res) => {
 });
 
 // Verify the signature and confirm Razorpay reports a captured payment for this exact order.
-router.post('/verify', auth, async (req, res) => {
+router.post('/verify', optionalAuth, async (req, res) => {
   try {
     const { client, keySecret } = getRazorpay();
     const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body || {};
@@ -166,11 +185,13 @@ router.post('/verify', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Payment signature is invalid.' });
     }
 
-    const User = require('../models/User');
-    const account = await User.findById(req.user.id).select('email role');
-    if (!account || account.role !== 'donor') return res.status(403).json({ msg: 'Donation user access required.' });
-    const donation = await Donation.findOne({ razorpayOrderId: orderId, donorEmail: account.email });
-    if (!donation) return res.status(404).json({ msg: 'Donation order not found for this account.' });
+    const donation = await Donation.findOne({ razorpayOrderId: orderId });
+    if (!donation) return res.status(404).json({ msg: 'Donation order not found.' });
+    // Account-linked donations can only be verified by that same account. Guest
+    // orders have no userId and can be verified without registration or login.
+    if (donation.userId && String(donation.userId) !== String(req.user?.id || '')) {
+      return res.status(403).json({ msg: 'This donation belongs to another account.' });
+    }
 
     if (donation.paymentStatus === 'success') {
       if (donation.razorpayPaymentId !== paymentId) {
