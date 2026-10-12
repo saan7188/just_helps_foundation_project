@@ -61,7 +61,7 @@ router.get('/admin/all', auth, admin, causeController.getAllCausesAdmin);
 router.get('/mine', auth, causeController.getMyCauses);
 router.get('/', causeController.getCauses);
 
-router.post('/', auth, uploadCampaignFiles, causeController.createCause);
+router.post('/', auth, (req, res, next) => { if (req.user?.isAdmin || req.user?.role === 'fundraiser') return next(); return res.status(403).json({ msg: 'Only fundraiser accounts can submit campaigns.' }); }, uploadCampaignFiles, causeController.createCause);
 router.get('/:id', causeController.getCauseById);
 router.get('/:id/proof/:index', auth, admin, causeController.getProofFile);
 router.put('/:id', auth, admin, uploadCampaignFiles, causeController.updateCause);
