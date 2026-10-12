@@ -129,10 +129,10 @@ router.post('/login-with-otp', loginOtpLimiter, async (req, res) => {
 
     await Otp.deleteMany({ email });
 
-    const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
+    const payload = { user: { id: user.id, isAdmin: user.isAdmin, role: user.role || 'fundraiser' } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, isAdmin: user.isAdmin });
+      res.json({ token, isAdmin: user.isAdmin, role: user.role || 'fundraiser' });
     });
   } catch (err) {
     console.error(err);
@@ -149,6 +149,7 @@ router.post('/register', async (req, res) => {
   const name = String(req.body.name || '').trim();
   const email = String(req.body.email || '').trim().toLowerCase();
   const password = String(req.body.password || '');
+  const role = ['donor', 'fundraiser'].includes(String(req.body.role || 'fundraiser')) ? String(req.body.role || 'fundraiser') : 'fundraiser';
   const verificationToken = String(req.body.verificationToken || '');
 
   if (name.length < 2 || name.length > 80) {
@@ -191,7 +192,7 @@ router.post('/register', async (req, res) => {
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ msg: 'User already exists. Please Login.' });
 
-    user = new User({ name, email, password });
+    user = new User({ name, email, password, role });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
