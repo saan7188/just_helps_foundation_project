@@ -6,7 +6,7 @@ import API_URL from './api';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Maintenance from './components/Maintenance';
-import { ProtectedRoute } from './components/RouteGuards';
+import { ProtectedRoute, AdminRoute } from './components/RouteGuards';
 
 import Home from './pages/Home';
 import Causes from './pages/Causes';
@@ -19,6 +19,9 @@ import Create from './pages/Create';
 import Dashboard from './pages/Dashboard';
 import Donate from './pages/Donate';
 import DonationResult from './pages/DonationResult';
+import Admin from './pages/Admin';
+import DonorDashboard from './pages/DonorDashboard';
+import AdminLogin from './pages/AdminLogin';
 
 function App() {
   const location = useLocation();
@@ -71,9 +74,9 @@ function App() {
 
           <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-
-          <Route path="/admin-login" element={<Navigate to="/" replace />} />
-          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+          <Route path="/donor-dashboard" element={<ProtectedRoute><DonorDashboard /></ProtectedRoute>} />
+          <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
         </Routes>
       </main>
       <Footer />
