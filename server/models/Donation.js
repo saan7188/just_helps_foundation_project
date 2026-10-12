@@ -14,10 +14,12 @@ const DonationSchema = new mongoose.Schema({
   transactionId: { type: String, unique: true, sparse: true },
   paymentStatus: {
     type: String,
-    enum: ['success', 'cancelled', 'failed'],
-    default: 'success'
+    enum: ['pending', 'success', 'cancelled', 'failed'],
+    default: 'pending'
   },
-  paymentMethod: { type: String, default: 'demo' },
+  paymentMethod: { type: String, default: 'razorpay_test' },
+  razorpayOrderId: { type: String, unique: true, sparse: true },
+  razorpayPaymentId: { type: String, unique: true, sparse: true },
   date: { type: Date, default: Date.now }
 });
 
