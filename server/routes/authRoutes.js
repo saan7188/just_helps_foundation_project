@@ -200,10 +200,10 @@ router.post('/register', async (req, res) => {
     await user.save();
     await Otp.deleteMany({ email });
 
-    const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
+    const payload = { user: { id: user.id, isAdmin: user.isAdmin, role: user.role || 'fundraiser' } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, isAdmin: user.isAdmin });
+      res.json({ token, isAdmin: user.isAdmin, role: user.role || 'fundraiser' });
     });
   } catch (err) {
     console.error(err);
@@ -284,10 +284,10 @@ router.post('/login', passwordLoginLimiter, async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ msg: 'Invalid Credentials' });
 
-    const payload = { user: { id: user.id, isAdmin: user.isAdmin } };
+    const payload = { user: { id: user.id, isAdmin: user.isAdmin, role: user.role || 'fundraiser' } };
     jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '5d' }, (err, token) => {
       if (err) throw err;
-      res.json({ token, isAdmin: user.isAdmin });
+      res.json({ token, isAdmin: user.isAdmin, role: user.role || 'fundraiser' });
     });
   } catch (err) {
     console.error(err);
