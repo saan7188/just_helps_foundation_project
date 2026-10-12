@@ -51,7 +51,9 @@ const optionalAuth = (req, res, next) => {
     req.user = decoded.user;
     next();
   } catch {
-    return res.status(401).json({ msg: 'Your session has expired. Sign in again or continue as a guest.' });
+    // An expired or invalid session must not block a guest donation.
+    // Treat this request as a guest checkout instead of requiring sign-in.
+    return next();
   }
 };
 
