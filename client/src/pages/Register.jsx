@@ -117,7 +117,7 @@ export default function Register() {
           <p>How would you like to use Just Helps?</p>
           <label className="role-option"><input type="radio" name="role" checked={role === 'donor'} onChange={() => setRole('donor')} /><span><strong>Donate</strong><small>Contribute to needs and keep track of your donations.</small></span></label>
           <label className="role-option"><input type="radio" name="role" checked={role === 'fundraiser'} onChange={() => setRole('fundraiser')} /><span><strong>Raise funds</strong><small>Share a need and send proof for review.</small></span></label>
-        </div>
+        </div>}
         <p className="auth-muted">
           {step === 1 ? 'Step 1 of 3 · Email verification' : step === 2 ? 'Step 2 of 3 · Verify OTP' : 'Step 3 of 3 · Secure your account'}
         </p>
