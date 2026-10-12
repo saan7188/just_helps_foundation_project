@@ -16,7 +16,7 @@ export default function Navbar() {
           {isAuthenticated && isAdmin && <Link to="/admin">Admin controls</Link>}
           {isAuthenticated
             ? <button className="nav-logout" onClick={() => { logout(); window.location.href = '/'; }}>Logout</button>
-            : <><Link to="/login">Login</Link><Link className="nav-login" to="/register">Register</Link></>}
+            : <Link className="nav-login" to="/login">Login / Register</Link>}
         </div>
       </div>
     </nav>
