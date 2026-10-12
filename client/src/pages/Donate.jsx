@@ -73,7 +73,7 @@ export default function Donate() {
         donorEmail: donorEmail.trim().toLowerCase(),
         isAnonymous,
         dedication
-      });
+      }, { headers: { 'x-auth-token': localStorage.getItem('token') } });
 
       const order = orderResponse.data;
       if (!window.Razorpay) {
@@ -109,7 +109,7 @@ export default function Donate() {
         },
         handler: async response => {
           try {
-            const verified = await axios.post(`${API_URL}/api/payment/verify`, response);
+            const verified = await axios.post(`${API_URL}/api/payment/verify`, response, { headers: { 'x-auth-token': localStorage.getItem('token') } });
             const data = verified.data;
             setShowPayment(false);
             navigate(`/donation-result?status=success&transaction=${encodeURIComponent(data.transactionId)}&category=${encodeURIComponent(data.category || category)}&cause=${encodeURIComponent(data.causeTitle || cause?.title || '')}&impact=${encodeURIComponent(data.impactMessage || impactMessage)}`, { replace: true });
