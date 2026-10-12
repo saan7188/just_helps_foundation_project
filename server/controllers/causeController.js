@@ -133,6 +133,9 @@ exports.createCause = async (req, res) => {
   if (!req.files?.image?.[0]) {
     return res.status(400).json({ msg: 'Campaign image is required' });
   }
+  if (!req.files?.proof?.length) {
+    return res.status(400).json({ msg: 'At least one valid supporting proof document is required before review.' });
+  }
 
   if (!deadline || Number.isNaN(new Date(deadline).getTime()) || new Date(deadline) <= new Date()) {
     return res.status(400).json({ msg: 'Choose a valid future deadline' });
