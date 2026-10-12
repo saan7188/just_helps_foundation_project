@@ -53,8 +53,9 @@ router.get('/all', auth, admin, async (req, res) => {
 router.get('/mine', auth, async (req, res) => {
   try {
     const User = require('../models/User');
-    const user = await User.findById(req.user.id).select('email');
+    const user = await User.findById(req.user.id).select('email role');
     if (!user) return res.status(404).json({ msg: 'Account not found.' });
+    if (user.role !== 'donor') return res.status(403).json({ msg: 'Donation user access required.' });
     const donations = await Donation.find({ $or: [{ userId: user._id }, { donorEmail: user.email }], paymentStatus: 'success' }).sort({ date: -1 }).lean();
     res.json(donations);
   } catch (error) {
