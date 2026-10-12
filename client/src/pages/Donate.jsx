@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios';
 import API_URL from '../api';
 
-const presets = [10, 50, 100, 500, 1000];
+const presets = [1, 10, 50, 100, 500, 1000];
 
 const impactByCategory = {
   Food: 'You made someone worry a little less about their next meal.',
@@ -164,8 +164,8 @@ export default function Donate() {
           )}
 
           <div className="amount-card">
-            <h2>Choose your contribution</h2>
-            <p>Every amount matters.</p>
+            <h2>Choose your <span className="text-accent">contribution</span></h2>
+            <p>Start with ₹1. Give what you can.</p>
             <div className="amount-grid">
               {presets.map(value => (
                 <button key={value} type="button" aria-pressed={!custom && donationAmount === value} className={!custom && donationAmount === value ? 'amount-active' : 'amount-button'} onClick={() => { setAmount(value); setCustom(false); }}>
