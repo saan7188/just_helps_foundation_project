@@ -63,8 +63,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/causes" element={<Causes />} />
           <Route path="/campaign/:id" element={<Campaign />} />
-          <Route path="/donate" element={<ProtectedRoute allowedRoles={["donor"]}><Donate /></ProtectedRoute>} />
-          <Route path="/donate/:id" element={<ProtectedRoute allowedRoles={["donor"]}><Donate /></ProtectedRoute>} />
+          <Route path="/donate" element={<Donate />} />
+          <Route path="/donate/:id" element={<Donate />} />
           <Route path="/donation-result" element={<DonationResult />} />
 
           <Route path="/login" element={<Login />} />
