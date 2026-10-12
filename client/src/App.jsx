@@ -63,8 +63,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/causes" element={<Causes />} />
           <Route path="/campaign/:id" element={<Campaign />} />
-          <Route path="/donate" element={<Donate />} />
-          <Route path="/donate/:id" element={<Donate />} />
+          <Route path="/donate" element={<ProtectedRoute allowedRoles={["donor"]}><Donate /></ProtectedRoute>} />
+          <Route path="/donate/:id" element={<ProtectedRoute allowedRoles={["donor"]}><Donate /></ProtectedRoute>} />
           <Route path="/donation-result" element={<DonationResult />} />
 
           <Route path="/login" element={<Login />} />
@@ -72,11 +72,11 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-          <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/donor-dashboard" element={<ProtectedRoute><DonorDashboard /></ProtectedRoute>} />
+          <Route path="/create" element={<ProtectedRoute allowedRoles={["fundraiser"]}><Create /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={["fundraiser"]}><Dashboard /></ProtectedRoute>} />
+          <Route path="/donor-dashboard" element={<ProtectedRoute allowedRoles={["donor"]}><DonorDashboard /></ProtectedRoute>} />
           <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route path="/admin/*" element={<AdminRoute><Admin /></AdminRoute>} />
         </Routes>
       </main>
       <Footer />
