@@ -1,5 +1,7 @@
 const express = require('express');
+const crypto = require('crypto');
 const { randomUUID } = require('crypto');
+const Razorpay = require('razorpay');
 const router = express.Router();
 
 const Donation = require('../models/Donation');
@@ -7,16 +9,6 @@ const Cause = require('../models/Cause');
 const sendEmail = require('../utils/sendEmail');
 const auth = require('../middleware/authMiddleware');
 const admin = require('../middleware/adminMiddleware');
-
-const createTransactionId = () =>
-  `JH-DEMO-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
-
-const escapeHtml = value => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#039;');
 
 const impactByCategory = {
   Food: 'You made someone worry a little less about their next meal.',
@@ -28,6 +20,26 @@ const impactByCategory = {
   General: 'You made someone’s day a little easier.'
 };
 
+const escapeHtml = value => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+const getRazorpay = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    const error = new Error('Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to the backend environment.');
+    error.status = 503;
+    throw error;
+  }
+  return { client: new Razorpay({ key_id: keyId, key_secret: keySecret }), keyId, keySecret };
+};
+
+const validAmount = value => Number.isFinite(value) && value >= 1 && value <= 1000000;
+
 router.get('/all', auth, admin, async (req, res) => {
   try {
     const donations = await Donation.find().sort({ date: -1 }).lean();
@@ -38,151 +50,221 @@ router.get('/all', auth, admin, async (req, res) => {
   }
 });
 
-router.post('/donate', async (req, res) => {
-  const {
-    donorName,
-    donorEmail,
-    amount,
-    tip = 0,
-    causeId,
-    causeTitle,
-    isAnonymous = false,
-    dedication = ''
-  } = req.body;
-
-  const donationAmount = Number(amount);
-  const tipAmount = Number(tip);
-  const totalPaid = donationAmount + tipAmount;
-
-  const normalizedEmail = String(donorEmail || '').trim().toLowerCase();
-  const normalizedName = String(donorName || '').trim();
-  const normalizedDedication = String(dedication || '').trim();
-
-  if (!normalizedName || normalizedName.length > 100 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-    return res.status(400).json({ msg: 'Enter a valid name and email' });
-  }
-
-  if (!Number.isFinite(donationAmount) || donationAmount < 1 || donationAmount > 1000000) {
-    return res.status(400).json({ msg: 'Donation amount must be between ₹1 and ₹10,00,000' });
-  }
-
-  if (!Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 100000) {
-    return res.status(400).json({ msg: 'Invalid tip amount' });
-  }
-
-  if (totalPaid > 1100000) {
-    return res.status(400).json({ msg: 'Total demo contribution is too large' });
-  }
-
+// Create a server-side Razorpay order. The browser never receives the key secret.
+router.post('/create-order', async (req, res) => {
   try {
+    const { client, keyId } = getRazorpay();
+    const {
+      donorName, donorEmail, amount, tip = 0, causeId,
+      causeTitle, category = 'General', isAnonymous = false, dedication = ''
+    } = req.body;
+
+    const donationAmount = Number(amount);
+    const tipAmount = Number(tip);
+    const totalPaid = donationAmount + tipAmount;
+    const normalizedName = String(donorName || '').trim();
+    const normalizedEmail = String(donorEmail || '').trim().toLowerCase();
+
+    if (!normalizedName || normalizedName.length > 100 || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return res.status(400).json({ msg: 'Enter a valid name and email.' });
+    }
+    if (!validAmount(donationAmount) || !Number.isFinite(tipAmount) || tipAmount < 0 || tipAmount > 100000 || totalPaid > 1100000) {
+      return res.status(400).json({ msg: 'Enter a valid donation amount.' });
+    }
+
     let cause = null;
-
     if (causeId) {
-      if (!/^[a-f\d]{24}$/i.test(causeId)) {
-        return res.status(400).json({ msg: 'Invalid campaign ID' });
+      if (!/^[a-f\d]{24}$/i.test(String(causeId))) {
+        return res.status(400).json({ msg: 'Invalid campaign ID.' });
       }
-
       cause = await Cause.findOne({
         _id: causeId,
         isVerified: true,
         $or: [{ status: 'approved' }, { status: { $exists: false } }]
       });
-
-      if (!cause) {
-        return res.status(404).json({ msg: 'Campaign not found' });
+      if (!cause) return res.status(404).json({ msg: 'Campaign not found or not approved.' });
+      if (Number(cause.collected || 0) + donationAmount > Number(cause.target)) {
+        return res.status(400).json({ msg: 'This donation would exceed the campaign goal.' });
       }
     }
 
-    const transactionId = createTransactionId();
-    const category = String(cause?.category || req.body.category || 'General').trim().slice(0, 50);
-    const recordedCauseTitle = String(cause?.title || causeTitle || 'General Donation').slice(0, 200);
+    const recordedCategory = String(cause?.category || category || 'General').trim().slice(0, 50);
+    const recordedCauseTitle = String(cause?.title || causeTitle || 'General Donation').trim().slice(0, 200);
+    const order = await client.orders.create({
+      amount: Math.round(totalPaid * 100),
+      currency: 'INR',
+      receipt: `jh_${randomUUID().replace(/-/g, '').slice(0, 24)}`,
+      notes: { project: 'Just Helps Foundation', mode: 'test' }
+    });
 
-    if (cause) {
+    const donation = await Donation.create({
+      donorName: normalizedName,
+      donorEmail: normalizedEmail,
+      amount: donationAmount,
+      tipAmount,
+      totalPaid,
+      cause: cause ? String(cause._id) : 'general',
+      causeTitle: recordedCauseTitle,
+      category: recordedCategory,
+      isAnonymous: Boolean(isAnonymous),
+      dedication: String(dedication || '').trim().slice(0, 500),
+      paymentStatus: 'pending',
+      paymentMethod: 'razorpay_test',
+      razorpayOrderId: order.id
+    });
+
+    return res.status(201).json({
+      keyId,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      donationId: donation._id,
+      mode: 'test'
+    });
+  } catch (error) {
+    console.error('Razorpay create-order error:', error);
+    return res.status(error.status || 500).json({ msg: error.status ? error.message : 'Unable to create Razorpay test order.' });
+  }
+});
+
+// Verify the signature and confirm Razorpay reports a captured payment for this exact order.
+router.post('/verify', async (req, res) => {
+  try {
+    const { client, keySecret } = getRazorpay();
+    const { razorpay_order_id: orderId, razorpay_payment_id: paymentId, razorpay_signature: signature } = req.body || {};
+
+    if (!orderId || !paymentId || !signature) {
+      return res.status(400).json({ msg: 'Missing Razorpay payment verification details.' });
+    }
+
+    const expectedSignature = crypto
+      .createHmac('sha256', keySecret)
+      .update(`${orderId}|${paymentId}`)
+      .digest('hex');
+
+    const supplied = Buffer.from(String(signature), 'hex');
+    const expected = Buffer.from(expectedSignature, 'hex');
+    if (supplied.length !== expected.length || !crypto.timingSafeEqual(supplied, expected)) {
+      return res.status(400).json({ msg: 'Payment signature is invalid.' });
+    }
+
+    const donation = await Donation.findOne({ razorpayOrderId: orderId });
+    if (!donation) return res.status(404).json({ msg: 'Donation order not found.' });
+
+    if (donation.paymentStatus === 'success') {
+      if (donation.razorpayPaymentId !== paymentId) {
+        return res.status(409).json({ msg: 'This order was already verified with a different payment.' });
+      }
+      return res.json({
+        msg: 'Payment already verified.',
+        transactionId: donation.transactionId,
+        category: donation.category,
+        causeTitle: donation.causeTitle,
+        impactMessage: impactByCategory[donation.category] || impactByCategory.General
+      });
+    }
+    if (donation.paymentStatus !== 'pending') {
+      return res.status(409).json({ msg: 'This donation order is no longer pending.' });
+    }
+
+    const payment = await client.payments.fetch(paymentId);
+    if (payment.order_id !== orderId || Number(payment.amount) !== Math.round(donation.totalPaid * 100) || payment.currency !== 'INR') {
+      return res.status(400).json({ msg: 'Payment details do not match this donation.' });
+    }
+    if (payment.status !== 'captured') {
+      return res.status(409).json({ msg: 'Payment is not captured yet. Please wait and try again.' });
+    }
+
+    // Claim this pending record once so duplicate callbacks cannot add to campaign totals twice.
+    const transactionId = `JH-TEST-${new Date().getFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`;
+    const claimed = await Donation.findOneAndUpdate(
+      { _id: donation._id, paymentStatus: 'pending' },
+      { $set: { paymentStatus: 'success', paymentMethod: 'razorpay_test', razorpayPaymentId: paymentId, transactionId } },
+      { new: true }
+    );
+    if (!claimed) {
+      const latest = await Donation.findById(donation._id);
+      if (latest?.paymentStatus === 'success' && latest.razorpayPaymentId === paymentId) {
+        return res.json({
+          msg: 'Payment already verified.',
+          transactionId: latest.transactionId,
+          category: latest.category,
+          causeTitle: latest.causeTitle,
+          impactMessage: impactByCategory[latest.category] || impactByCategory.General
+        });
+      }
+      return res.status(409).json({ msg: 'This donation is already being processed or is no longer pending.' });
+    }
+
+    if (claimed.cause && claimed.cause !== 'general') {
       const updatedCause = await Cause.findOneAndUpdate(
         {
-          _id: cause._id,
+          _id: claimed.cause,
           isVerified: true,
           $or: [{ status: 'approved' }, { status: { $exists: false } }],
-          $expr: { $lte: [{ $add: ['$collected', donationAmount] }, '$target'] }
+          $expr: { $lte: [{ $add: ['$collected', claimed.amount] }, '$target'] }
         },
-        { $inc: { collected: donationAmount } },
+        { $inc: { collected: claimed.amount } },
         { new: true }
       );
-
       if (!updatedCause) {
-        return res.status(400).json({ msg: 'Donation would exceed the campaign goal' });
+        await Donation.updateOne({ _id: claimed._id }, { $set: { paymentStatus: 'failed' } });
+        return res.status(409).json({ msg: 'Payment was received but the campaign goal changed. Please contact support.' });
       }
     }
 
-    let donation;
-
-    try {
-      donation = await Donation.create({
-        donorName: normalizedName,
-        donorEmail: normalizedEmail,
-        amount: donationAmount,
-        tipAmount,
-        totalPaid,
-        cause: cause ? String(cause._id) : 'general',
-        causeTitle: recordedCauseTitle,
-        category,
-        isAnonymous: Boolean(isAnonymous),
-        dedication: normalizedDedication.slice(0, 500),
-        transactionId
-      });
-    } catch (donationError) {
-      if (cause) {
-        await Cause.updateOne(
-          { _id: cause._id },
-          { $inc: { collected: -donationAmount } }
-        );
-      }
-      throw donationError;
-    }
-
-    const receiptName = escapeHtml(normalizedName);
-    const receiptCause = escapeHtml(recordedCauseTitle);
-
+    const safeName = escapeHtml(claimed.donorName);
+    const safeCause = escapeHtml(claimed.causeTitle || 'General Donation');
     const receiptHtml = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px">
-        <h2 style="color:#D97706">Just Helps — Demo Donation Receipt</h2>
-        <p>Thank you, ${receiptName}.</p>
-        <p>This portfolio project records simulated donations for demonstration purposes.</p>
-        <hr>
-        <p><strong>Campaign:</strong> ${receiptCause}</p>
-        <p><strong>Donation:</strong> ₹${donationAmount.toFixed(2)}</p>
-        <p><strong>Platform tip:</strong> ₹${tipAmount.toFixed(2)}</p>
-        <p><strong>Total:</strong> ₹${totalPaid.toFixed(2)}</p>
-        <p><strong>Demo transaction:</strong> ${transactionId}</p>
-        <p style="color:#6B7280;font-size:13px">
-          No real payment was processed. This receipt is not a tax certificate.
-        </p>
-      </div>
-    `;
+        <h2 style="color:#D97706">Just Helps — Razorpay Test Receipt</h2>
+        <p>Thank you, ${safeName}.</p>
+        <p><strong>Campaign:</strong> ${safeCause}</p>
+        <p><strong>Donation:</strong> ₹${claimed.amount.toFixed(2)}</p>
+        <p><strong>Platform tip:</strong> ₹${claimed.tipAmount.toFixed(2)}</p>
+        <p><strong>Total:</strong> ₹${claimed.totalPaid.toFixed(2)}</p>
+        <p><strong>Test transaction:</strong> ${transactionId}</p>
+        <p><strong>Razorpay payment ID:</strong> ${escapeHtml(paymentId)}</p>
+        <p style="color:#6B7280;font-size:13px">Razorpay Test Mode only. No real money was charged. This is not a tax certificate.</p>
+      </div>`;
 
     try {
       await sendEmail(
-        donation.donorEmail,
-        `Just Helps Demo Receipt — ${transactionId}`,
-        `Demo donation recorded. Transaction: ${transactionId}`,
+        claimed.donorEmail,
+        `Just Helps Test Receipt — ${transactionId}`,
+        `Razorpay test payment verified. Test transaction: ${transactionId}. No real money was charged.`,
         receiptHtml
       );
     } catch (emailError) {
-      console.error('Receipt email error:', emailError);
+      console.error('Test receipt email error:', emailError);
     }
 
-    return res.status(201).json({
-      msg: 'Demo donation recorded',
+    return res.json({
+      msg: 'Razorpay test payment verified.',
       transactionId,
-      paymentMode: 'demo',
-      donationId: donation._id,
-      category,
-      causeTitle: recordedCauseTitle,
-      impactMessage: impactByCategory[category] || impactByCategory.General
+      paymentMode: 'razorpay_test',
+      category: claimed.category,
+      causeTitle: claimed.causeTitle,
+      impactMessage: impactByCategory[claimed.category] || impactByCategory.General
     });
   } catch (error) {
-    console.error('Donation error:', error);
-    return res.status(500).json({ msg: 'Unable to record donation' });
+    console.error('Razorpay verify error:', error);
+    return res.status(error.status || 500).json({ msg: error.status ? error.message : 'Unable to verify test payment.' });
+  }
+});
+
+router.post('/cancel', async (req, res) => {
+  try {
+    const orderId = String(req.body?.orderId || '');
+    if (!orderId) return res.status(400).json({ msg: 'Order ID is required.' });
+    await Donation.updateOne(
+      { razorpayOrderId: orderId, paymentStatus: 'pending' },
+      { $set: { paymentStatus: 'cancelled' } }
+    );
+    return res.json({ msg: 'Pending test donation cancelled.' });
+  } catch (error) {
+    console.error('Razorpay cancel error:', error);
+    return res.status(500).json({ msg: 'Unable to cancel donation order.' });
   }
 });
 
